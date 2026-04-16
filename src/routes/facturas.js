@@ -326,6 +326,19 @@ router.patch('/:id/pagar', requireRol('admin','tesorero'), async (req, res) => {
 // ─── GET /api/facturas/:id/pdf ─────────────────────────────────────────────────
 router.get('/:id/pdf', async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token requerido' });
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      const jwt = require('jsonwebtoken');
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
     const { rows } = await db.query('SELECT archivo_pdf FROM facturas WHERE id=$1', [req.params.id]);
     if (!rows[0]?.archivo_pdf) return res.status(404).json({ error: 'PDF no disponible' });
 

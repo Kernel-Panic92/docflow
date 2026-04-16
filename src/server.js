@@ -3,10 +3,12 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
 // ─── Middlewares globales ─────────────────────────────────────────────────────
+app.use(cookieParser());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? process.env.CORS_ORIGIN || false
@@ -24,6 +26,8 @@ app.use('/api/facturas',    require('./routes/facturas'));
 app.use('/api/usuarios',    require('./routes/usuarios'));
 app.use('/api/proveedores', require('./routes/proveedores'));
 app.use('/api/dashboard',   require('./routes/dashboard'));
+app.use('/api/backup',      require('./routes/backup'));
+app.use('/api/sync',        require('./routes/sync'));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

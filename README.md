@@ -153,11 +153,49 @@ recibida → revision → aprobada → causada → pagada
 
 ## Variables de entorno
 
+## Backups
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/backup/lista` | Lista backups disponibles |
+| GET | `/api/backup/generar` | Genera nuevo backup (ZIP) |
+| GET | `/api/backup/descargar/:nombre` | Descarga un backup |
+| POST | `/api/backup/restaurar` | Restaura desde archivo ZIP |
+| DELETE | `/api/backup/:nombre` | Elimina un backup |
+
+**El instalador también configura:**
+- Backup automático diario a las 2 AM (crontab)
+- Script `backup.sh` para backup manual
+- Restauración completa de BD + uploads
+
+## Rate Limiting
+
+- Máximo 5 intentos de login en 5 minutos
+- Bloqueo de 30 min tras intentos fallidos
+- Admin puede ver/desbloquear IPs en `/api/auth/ratelimit-status`
+
+## Notificaciones por Email
+
+El servicio SMTP está configurado para enviar notificaciones en cada transición de estado:
+- `recibida` → Email al comprador/asignado
+- `aprobada` → Email a tesorería
+- `rechazada` → Email al área
+- `escalación` → Email al jefe/gerencia
+
+Configura el SMTP en la tabla `configuracion` o mediante variables de entorno.
+
+## Tema claro/oscuro
+
+Toggle en la barra superior. El tema se guarda en `localStorage`.
+
 Ver `.env.example` para la lista completa.
 
 ## Próximos pasos
 
-- [ ] Conectar frontend React (ya desarrollado en `VitamarDocs.jsx`)
-- [ ] Notificaciones por correo en cada transición
+- [x] Frontend mejorado (Light/Dark, Responsive)
+- [x] Rate limiting y protección fuerza bruta
+- [x] Recuperación de contraseña por email
+- [x] Backup/Restore automático
+- [x] Notificaciones SMTP en transiciones
 - [ ] Módulo de proveedores con CRUD
-- [ ] Integración con módulo Horix (núcleo compartido de usuarios)
+- [ ] Integración con Horix

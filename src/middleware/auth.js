@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 
 /**
  * Verifica el JWT en el header Authorization: Bearer <token>
- * Adjunta req.usuario con { id, nombre, email, rol, area_id }
+ * Adjunta req.usuario con { id, nombre, email, rol, area_id, _token }
  */
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -13,7 +13,7 @@ function authMiddleware(req, res, next) {
   const token = header.split(' ')[1];
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.usuario = payload;
+    req.usuario = { ...payload, _token: token };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {

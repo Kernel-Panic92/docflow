@@ -99,6 +99,11 @@ const migrations = [
 
   dian_tacita         BOOLEAN NOT NULL DEFAULT FALSE,
 
+  fecha_factura       DATE,
+  nit_emisor          VARCHAR(30),
+  nombre_emisor       VARCHAR(200),
+  cufe                VARCHAR(100),
+
   creado_en           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   actualizado_en      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`,
@@ -161,7 +166,40 @@ const migrations = [
   ('moneda',                  'COP',  'Moneda por defecto')
 ON CONFLICT (clave) DO NOTHING`,
 
-// ─── 012: Función updated_at automático ──────────────────────────────────────
+// ─── 012: Tokens de recuperación de contraseña ───────────────────────────────
+`CREATE TABLE IF NOT EXISTS tokens_reset (
+  token      VARCHAR(100) PRIMARY KEY,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  expira     TIMESTAMPTZ NOT NULL,
+  creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`,
+
+// ─── 013: Sesiones (para logout y gestión) ───────────────────────────────────
+`CREATE TABLE IF NOT EXISTS sesiones (
+  token      VARCHAR(100) PRIMARY KEY,
+  usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  expira     TIMESTAMPTZ NOT NULL,
+  ip         VARCHAR(50),
+  user_agent TEXT,
+  creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`,
+
+// ─── 014: Log de accesos (auditoría login) ───────────────────────────────────
+`CREATE TABLE IF NOT EXISTS log_accesos (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  usuario_id  UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+  email      VARCHAR(200),
+  ip         VARCHAR(50),
+  user_agent TEXT,
+  exito      BOOLEAN NOT NULL,
+  motivo     VARCHAR(100),
+  creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`,
+
+// ─── 015: Actualizar tabla usuarios ────────────────────────────────────────────
+`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cambio_password BOOLEAN NOT NULL DEFAULT FALSE`,
+
+// ─── 016: Función updated_at automático ──────────────────────────────────────
 `CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

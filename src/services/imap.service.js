@@ -1,15 +1,186 @@
+require('dotenv').config();
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
-const path  = require('path');
-const fs    = require('fs');
+const path    = require('path');
+const fs      = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const db    = require('../db');
+const AdmZip  = require('adm-zip');
+const db      = require('../db');
+const syncState = require('./sync-state');
 
-/**
- * Servicio de ingesta de facturas desde FortiMail vía IMAP.
- * Corre cada IMAP_POLL_MINUTES minutos (default 5).
- * Descarga PDFs adjuntos y crea registros de facturas en estado 'recibida'.
- */
+function extraerInvoiceEmbebido(xml) {
+  const invoiceMatch = xml.match(/<cbc:Description><!\[CDATA\[([\s\S]*?)\]\]><\/cbc:Description>/);
+  if (invoiceMatch) {
+    const contenido = invoiceMatch[1];
+    if (contenido.includes('<Invoice')) {
+      return contenido;
+    }
+  }
+  return null;
+}
+
+function parsearXml(xmlContent) {
+  const data = {
+    numeroFactura: null,
+    fecha: null,
+    cufe: null,
+    nombreEmisor: null,
+    nitEmisor: null,
+    nombreReceptor: null,
+    nitReceptor: null,
+    valorBruto: 0,
+    iva: 0,
+    valorTotal: 0
+  };
+
+  try {
+    const xml = xmlContent.toString('utf8');
+    
+    const invoiceEmbebido = extraerInvoiceEmbebido(xml);
+    const xmlFinal = invoiceEmbebido || xml;
+
+    if (invoiceEmbebido) {
+      console.log(`  [Parser] Invoice embebido detectado — extrayendo datos`);
+    }
+
+    const idMatch = xmlFinal.match(/<cbc:ID>([^<]+)<\/cbc:ID>/);
+    if (idMatch) {
+      const id = idMatch[1].trim();
+      if (id !== '01' && /[A-Z0-9\-]{3,}/i.test(id)) {
+        data.numeroFactura = id;
+      }
+    }
+
+    const fechaMatch = xmlFinal.match(/<cbc:IssueDate>(\d{4}-\d{2}-\d{2})<\/cbc:IssueDate>/);
+    if (fechaMatch) data.fecha = fechaMatch[1];
+
+    const cufeMatch = xmlFinal.match(/<cbc:UUID[^>]*schemeName="CUFE-SHA384"[^>]*>([^<]+)<\/cbc:UUID>/);
+    if (!cufeMatch) {
+      const uuidMatch = xmlFinal.match(/<cbc:UUID[^>]*>([^<]+)<\/cbc:UUID>/);
+      data.cufe = uuidMatch ? uuidMatch[1].trim() : null;
+    } else {
+      data.cufe = cufeMatch[1].trim();
+    }
+
+    const supplierMatch = xmlFinal.match(/<cac:AccountingSupplierParty>([\s\S]*?)<\/cac:AccountingSupplierParty>/);
+    if (supplierMatch) {
+      const supplier = supplierMatch[1];
+      const nombreMatch = supplier.match(/<cbc:Name>([^<]+)<\/cbc:Name>/);
+      if (nombreMatch) data.nombreEmisor = nombreMatch[1].trim();
+      
+      const nitMatch = supplier.match(/CompanyID[^>]*schemeName="31"[^>]*>([^<]+)<\/cbc:CompanyID>/);
+      if (nitMatch) {
+        data.nitEmisor = nitMatch[1].trim().replace(/[^0-9]/g, '');
+      } else {
+        const nitMatch2 = supplier.match(/<cbc:CompanyID[^>]*>(\d+)<\/cbc:CompanyID>/);
+        if (nitMatch2) data.nitEmisor = nitMatch2[1].trim();
+      }
+    }
+
+    const customerMatch = xmlFinal.match(/<cac:AccountingCustomerParty>([\s\S]*?)<\/cac:AccountingCustomerParty>/);
+    if (customerMatch) {
+      const customer = customerMatch[1];
+      const nombreMatch = customer.match(/<cbc:Name>([^<]+)<\/cbc:Name>/);
+      if (nombreMatch) data.nombreReceptor = nombreMatch[1].trim();
+      
+      const nitMatch = customer.match(/CompanyID[^>]*schemeName="31"[^>]*>([^<]+)<\/cbc:CompanyID>/);
+      if (nitMatch) {
+        data.nitReceptor = nitMatch[1].trim().replace(/[^0-9]/g, '');
+      } else {
+        const nitMatch2 = customer.match(/<cbc:CompanyID[^>]*>(\d+)<\/cbc:CompanyID>/);
+        if (nitMatch2) data.nitReceptor = nitMatch2[1].trim();
+      }
+    }
+
+    const monetaryMatch = xmlFinal.match(/<cac:LegalMonetaryTotal>([\s\S]*?)<\/cac:LegalMonetaryTotal>/);
+    if (monetaryMatch) {
+      const monetary = monetaryMatch[1];
+      
+      const brutoMatch = monetary.match(/<cbc:LineExtensionAmount[^>]*currencyID="COP">([^<]+)<\/cbc:LineExtensionAmount>/);
+      if (brutoMatch) data.valorBruto = parseFloat(brutoMatch[1]);
+      
+      const taxInclusiveMatch = monetary.match(/<cbc:TaxInclusiveAmount[^>]*currencyID="COP">([^<]+)<\/cbc:TaxInclusiveAmount>/);
+      const payableMatch = monetary.match(/<cbc:PayableAmount[^>]*currencyID="COP">([^<]+)<\/cbc:PayableAmount>/);
+      
+      if (taxInclusiveMatch) {
+        data.valorTotal = parseFloat(taxInclusiveMatch[1]);
+      } else if (payableMatch) {
+        data.valorTotal = parseFloat(payableMatch[1]);
+      }
+    }
+
+    if (data.valorTotal === 0) {
+      const totalMatch = xmlFinal.match(/<cbc:PayableAmount[^>]*currencyID="COP">([^<]+)<\/cbc:PayableAmount>/);
+      if (totalMatch) data.valorTotal = parseFloat(totalMatch[1]);
+    }
+
+    const taxTotalMatch = xmlFinal.match(/<cac:TaxTotal>([\s\S]*?)<\/cac:TaxTotal>/);
+    if (taxTotalMatch) {
+      const taxTotal = taxTotalMatch[1];
+      const taxAmountMatch = taxTotal.match(/<cbc:TaxAmount[^>]*currencyID="COP">([^<]+)<\/cbc:TaxAmount>/);
+      if (taxAmountMatch) data.iva = parseFloat(taxAmountMatch[1]);
+    }
+
+    if (data.iva === 0 && data.valorTotal > data.valorBruto) {
+      data.iva = data.valorTotal - data.valorBruto;
+    }
+
+  } catch (err) {
+    console.log(`  [Parser] Error: ${err.message}`);
+  }
+
+  return data;
+}
+
+function extraerZip(zipBuffer) {
+  const archivos = { pdf: null, xml: null };
+  try {
+    const zip = new AdmZip(zipBuffer);
+    const entries = zip.getEntries();
+    for (const entry of entries) {
+      const nombre = entry.entryName.toLowerCase();
+      if (nombre.endsWith('.pdf') && !archivos.pdf) {
+        archivos.pdf = { nombre: entry.entryName, contenido: entry.getData() };
+        console.log(`  [ZIP] PDF: ${entry.entryName}`);
+      } else if (nombre.endsWith('.xml')) {
+        if (!archivos.xml) {
+          archivos.xml = { nombre: entry.entryName, contenido: entry.getData() };
+          console.log(`  [ZIP] XML: ${entry.entryName}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.log(`  [ZIP] Error extrayendo: ${err.message}`);
+  }
+  return archivos;
+}
+
+async function crearProveedorSiNoExiste(client, nitEmisor, nombreEmisor, emailOrigen) {
+  if (!nitEmisor) return null;
+  
+  const existente = await client.query(
+    'SELECT id FROM proveedores WHERE nit = $1 AND activo = TRUE LIMIT 1',
+    [nitEmisor]
+  );
+  
+  if (existente.rows.length > 0) {
+    return existente.rows[0].id;
+  }
+  
+  const nombre = nombreEmisor || `Proveedor NIT ${nitEmisor}`;
+  const email = emailOrigen || null;
+  
+  const result = await client.query(
+    `INSERT INTO proveedores (nit, nombre, email_facturacion, telefono, direccion)
+     VALUES ($1, $2, $3, NULL, NULL)
+     ON CONFLICT (nit) DO UPDATE SET nombre = EXCLUDED.nombre, email_facturacion = COALESCE(EXCLUDED.email_facturacion, proveedores.email_facturacion)
+     RETURNING id`,
+    [nitEmisor, nombre, email]
+  );
+  
+  console.log(`  [IMAP] Proveedor creado/encontrado: ${nombre} (NIT: ${nitEmisor})`);
+  return result.rows[0].id;
+}
 
 async function procesarCorreo(parsed, msgId) {
   const uploadDir = process.env.UPLOAD_DIR || './uploads/facturas';
@@ -17,54 +188,67 @@ async function procesarCorreo(parsed, msgId) {
 
   let archivoPdf = null;
   let archivoXml = null;
+  let datosFactura = {};
 
-  // Buscar adjuntos PDF y XML
   for (const att of parsed.attachments || []) {
-    const ext = path.extname(att.filename || '').toLowerCase();
-    if (ext === '.pdf' && !archivoPdf) {
+    const filename = att.filename || '';
+    const ext = path.extname(filename).toLowerCase();
+    
+    if (ext === '.zip' || filename.toLowerCase().includes('.zip')) {
+      console.log(`  [IMAP] Procesando ZIP: ${filename}`);
+      const archivos = extraerZip(att.content);
+      
+      if (archivos.xml) {
+        const xmlNombre = `${uuidv4()}.xml`;
+        fs.writeFileSync(path.join(uploadDir, xmlNombre), archivos.xml.contenido);
+        archivoXml = xmlNombre;
+        console.log(`  [IMAP] XML guardado: ${xmlNombre}`);
+        
+        datosFactura = parsearXml(archivos.xml.contenido);
+        console.log(`  [IMAP] Datos:`, JSON.stringify(datosFactura));
+      }
+      
+      if (archivos.pdf && !archivoPdf) {
+        const pdfNombre = `${uuidv4()}.pdf`;
+        fs.writeFileSync(path.join(uploadDir, pdfNombre), archivos.pdf.contenido);
+        archivoPdf = pdfNombre;
+        console.log(`  [IMAP] PDF guardado: ${pdfNombre}`);
+      }
+    } else if ((ext === '.pdf' || filename.toLowerCase().includes('pdf')) && !archivoPdf) {
       const nombre = `${uuidv4()}.pdf`;
       fs.writeFileSync(path.join(uploadDir, nombre), att.content);
       archivoPdf = nombre;
-      console.log(`  [IMAP] PDF guardado: ${nombre}`);
-    }
-    if (ext === '.xml' && !archivoXml) {
+      console.log(`  [IMAP] PDF directo guardado: ${nombre}`);
+    } else if ((ext === '.xml' || filename.toLowerCase().includes('xml')) && !archivoXml) {
       const nombre = `${uuidv4()}.xml`;
       fs.writeFileSync(path.join(uploadDir, nombre), att.content);
       archivoXml = nombre;
+      datosFactura = parsearXml(att.content);
+      console.log(`  [IMAP] XML directo guardado: ${nombre}`);
     }
   }
 
   if (!archivoPdf && !archivoXml) {
     console.log(`  [IMAP] Sin adjuntos relevantes en: "${parsed.subject}" — omitiendo`);
-    return;
+    return 'omitido';
   }
 
-  // Extraer remitente para buscar proveedor
+  const { numeroFactura, nitEmisor, nombreEmisor, valorTotal, iva, valorBruto, fecha, cufe } = datosFactura;
+  const fechaFactura = fecha ? new Date(fecha.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3')) : null;
   const emailOrigen = parsed.from?.value?.[0]?.address || null;
-
-  // Buscar proveedor por email
-  let proveedorId = null;
-  if (emailOrigen) {
-    const res = await db.query(
-      'SELECT id FROM proveedores WHERE email_facturacion = $1 AND activo = TRUE LIMIT 1',
-      [emailOrigen.toLowerCase()]
-    );
-    proveedorId = res.rows[0]?.id || null;
-  }
-
-  // Calcular límite DIAN: +48h desde ahora
-  const limiteDian = new Date(Date.now() + 48 * 60 * 60 * 1000);
-
-  // Extraer número de factura del asunto (patrón básico)
   const asunto = parsed.subject || '';
-  const matchFV = asunto.match(/\b(FV|FE|FC|FES|FV-?\d+[-\d]*)\b/i);
-  const numeroFactura = matchFV?.[0] || `IMPORT-${Date.now()}`;
+  
+  console.log(`  [IMAP] Número: ${numeroFactura}, Valor: ${valorTotal}, IVA: ${iva}`);
+
+  if (!numeroFactura) {
+    console.log(`  [IMAP] No se pudo extraer número de factura — omitiendo`);
+    return 'sin_numero';
+  }
 
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
 
-    // Verificar que no se importó ya (por número o por message-id)
     const dup = await client.query(
       'SELECT id FROM facturas WHERE numero_factura = $1',
       [numeroFactura]
@@ -72,16 +256,25 @@ async function procesarCorreo(parsed, msgId) {
     if (dup.rows.length > 0) {
       console.log(`  [IMAP] Factura ${numeroFactura} ya existe — omitiendo`);
       await client.query('ROLLBACK');
-      return;
+      client.release();
+      return 'duplicada';
     }
+
+    const proveedorId = await crearProveedorSiNoExiste(client, nitEmisor, nombreEmisor, emailOrigen);
+
+    const ahora = new Date();
+    const referencia = fechaFactura || ahora;
+    const limiteDian = new Date(referencia.getTime() + 48 * 60 * 60 * 1000);
 
     const { rows } = await client.query(
       `INSERT INTO facturas (
-         numero_factura, proveedor_id, archivo_pdf, archivo_xml,
-         email_origen, email_asunto,
-         limite_dian, estado
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,'recibida')
-       RETURNING id, numero_factura`,
+          numero_factura, proveedor_id, archivo_pdf, archivo_xml,
+          email_origen, email_asunto,
+          limite_dian, estado,
+          valor_total, valor_iva, valor,
+          fecha_factura, nit_emisor, nombre_emisor, cufe
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,'recibida',$8,$9,$10,$11,$12,$13,$14)
+        RETURNING id, numero_factura`,
       [
         numeroFactura,
         proveedorId,
@@ -90,6 +283,13 @@ async function procesarCorreo(parsed, msgId) {
         emailOrigen,
         asunto.substring(0, 499),
         limiteDian,
+        valorTotal,
+        iva,
+        valorBruto,
+        fechaFactura,
+        nitEmisor,
+        nombreEmisor,
+        cufe,
       ]
     );
 
@@ -105,12 +305,14 @@ async function procesarCorreo(parsed, msgId) {
 
     await client.query('COMMIT');
     console.log(`  [IMAP] ✓ Factura creada: ${rows[0].numero_factura} (${rows[0].id})`);
+    client.release();
+    return 'creada';
 
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(`  [IMAP] Error creando factura:`, err.message);
-  } finally {
     client.release();
+    return 'error';
   }
 }
 
@@ -128,33 +330,80 @@ async function pollCorreo() {
       user: process.env.IMAP_USER,
       pass: process.env.IMAP_PASSWORD,
     },
-    logger: false,
+    logger: {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+    },
   });
+
+  const LOTE_SIZE = 50;
+  let totalProcesados = 0;
+  let totalCreados = 0;
+  let totalDuplicados = 0;
+  let totalError = 0;
 
   try {
     await client.connect();
+    console.log('[IMAP] ✓ Conexión exitosa');
     const lock = await client.getMailboxLock(process.env.IMAP_FOLDER || 'INBOX');
 
     try {
-      // Solo no leídos
-      const mensajes = await client.search({ seen: false });
+      let mensajes = await client.search({ seen: false });
+      console.log(`[IMAP] ${mensajes.length} mensaje(s) no leídos encontrados`);
+      
       if (mensajes.length === 0) {
         console.log('[IMAP] Sin mensajes nuevos');
+        syncState.terminarSync(0, 0, 0);
         return;
       }
 
-      console.log(`[IMAP] Procesando ${mensajes.length} mensaje(s) nuevo(s)...`);
+      syncState.iniciarSync(mensajes.length);
 
-      for await (const msg of client.fetch(mensajes, { source: true })) {
-        try {
-          const parsed = await simpleParser(msg.source);
-          await procesarCorreo(parsed, msg.envelope?.messageId);
-          // Marcar como leído
-          await client.messageFlagsAdd(msg.seq, ['\\Seen']);
-        } catch (err) {
-          console.error(`[IMAP] Error procesando mensaje ${msg.seq}:`, err.message);
+      while (mensajes.length > 0) {
+        const lote = mensajes.splice(0, LOTE_SIZE);
+        console.log(`[IMAP] Procesando lote de ${lote.length} mensaje(s)...`);
+
+        for await (const msg of client.fetch(lote, { source: true, flags: true })) {
+          try {
+            if (msg.flags?.includes('\\Seen')) {
+              totalDuplicados++;
+              totalProcesados++;
+              continue;
+            }
+
+            const parsed = await simpleParser(msg.source);
+            const resultado = await procesarCorreo(parsed, msg.envelope?.messageId);
+            
+            if (resultado === 'creada') {
+              totalCreados++;
+              await client.messageFlagsAdd(msg.seq, ['\\Seen']);
+            } else if (resultado === 'duplicada') {
+              totalDuplicados++;
+            }
+            
+            totalProcesados++;
+            
+            const restantes = mensajes.length;
+            const progreso = `${totalProcesados}/${syncState.obtenerEstado().totalMensajes}`;
+            syncState.actualizarProgreso(
+              totalProcesados, totalCreados, totalDuplicados, totalError,
+              `Procesando ${totalProcesados}/${syncState.obtenerEstado().totalMensajes}...`
+            );
+            
+            console.log(`[IMAP] Progreso: ${progreso} (${totalCreados} creadas)`);
+          } catch (err) {
+            console.error(`[IMAP] Error mensaje ${msg.seq}:`, err.message);
+            totalError++;
+            totalProcesados++;
+          }
         }
       }
+
+      syncState.terminarSync(totalCreados, totalDuplicados, totalError);
+      console.log(`[IMAP] ✓ Resumen: ${totalCreados} creadas, ${totalDuplicadas} duplicadas, ${totalError} errores`);
+
     } finally {
       lock.release();
     }
@@ -162,17 +411,15 @@ async function pollCorreo() {
     await client.logout();
   } catch (err) {
     console.error('[IMAP] Error de conexión:', err.message);
+    syncState.terminarSync(0, 0, 0);
+    console.error('[IMAP] Detalle:', err.code, err.command);
   }
 }
 
 function iniciarServicioImap() {
   const minutos = parseInt(process.env.IMAP_POLL_MINUTES || '5');
   console.log(`[IMAP] Servicio iniciado — revisando cada ${minutos} minutos`);
-
-  // Primera ejecución al arrancar
   pollCorreo();
-
-  // Ejecuciones periódicas
   setInterval(pollCorreo, minutos * 60 * 1000);
 }
 
