@@ -1642,7 +1642,7 @@ async function renderCfgTab(cfg){
     c.innerHTML=`
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-          <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Backups Automáticos</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Guarda automáticamente en la NAS</div></div>
+          <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Backups Automáticos</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Backups locales siempre se hacen. NAS es opcional como respaldo adicional.</div></div>
           <span class="badge ${r.config?.backup_auto_enabled==='true'?'b-aprobada':'b-revision'}">${r.config?.backup_auto_enabled==='true'?'Activo':'Inactivo'}</span>
         </div>
         <div class="form-grid">
@@ -1653,26 +1653,33 @@ async function renderCfgTab(cfg){
             </select>
           </div>
           <div class="field"><label>FRECUENCIA (cron)</label><input type="text" id="cfg-backup-auto-cron" value="${r.config?.backup_auto_cron||'0 2 * * *'}" placeholder="0 2 * * *"/><div style="font-size:11px;color:var(--muted);margin-top:4px">Formato: minuto hora día mes díaSemana. Ej: "0 2 * * *" = diario a las 2am</div></div>
-          <div class="field full"><label>RUTA NAS</label><input type="text" id="cfg-backup-auto-path" value="${r.config?.backup_auto_path||'/mnt/vitamar-nas/backup'}" placeholder="/mnt/vitamar-nas/backup"/><div style="font-size:11px;color:var(--muted);margin-top:4px">Ruta local montada o URL SMB (smb://servidor/carpeta)</div></div>
-          <div class="field"><label>TIPO DE CONEXIÓN</label>
-            <select id="cfg-backup-auto-type" onchange="toggleNasCreds()">
-              <option value="local" ${r.config?.backup_auto_type!=='smb'?'selected':''}>Directo (ruta local montada)</option>
-              <option value="smb" ${r.config?.backup_auto_type==='smb'?'selected':''}>SMB/CIFS (red Windows/NAS)</option>
-            </select>
-          </div>
-          <div class="field" id="cfg-nas-host-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>SERVIDOR SMB</label><input type="text" id="cfg-backup-auto-host" value="${r.config?.backup_auto_host||''}" placeholder="//192.168.1.100/backup"/></div>
-          <div class="field" id="cfg-nas-user-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>USUARIO SMB</label><input type="text" id="cfg-backup-auto-user" value="${r.config?.backup_auto_user||''}" placeholder="admin"/></div>
-          <div class="field" id="cfg-nas-pass-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>CONTRASEÑA SMB</label><input type="password" id="cfg-backup-auto-pass" value="${r.config?.backup_auto_pass||''}" placeholder="••••••••"/></div>
-          <div class="field"><label>RETENCIÓN (días)</label><input type="number" id="cfg-backup-auto-retention" value="${r.config?.backup_auto_retention||'7'}" placeholder="7"/></div>
+          <div class="field"><label>RETENCIÓN LOCAL (días)</label><input type="number" id="cfg-backup-auto-retention" value="${r.config?.backup_auto_retention||'7'}" placeholder="7"/><div style="font-size:11px;color:var(--success);margin-top:4px">✓ Backup local: /root/vitamar-docs/backups</div></div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:8px;margin:16px 0">
-          <span style="font-size:13px;color:var(--muted)">NAS conectada:</span>
-          <span class="badge ${r.nasMounted?'b-aprobada':'b-revision'}">${r.nasMounted?'Sí':'No'}</span>
-          <button class="btn btn-secondary btn-sm" onclick="testBackupPath()">🧪 Probar conexión</button>
-        </div>
-        ${r.lastBackup?'<div style="font-size:12px;color:var(--muted)">Último backup: '+r.lastBackup.split('/').pop()+'</div>':''}
         <div style="display:flex;gap:10px;margin-top:20px">
           <button class="btn btn-primary" onclick="guardarCfg('backups')">💾 Guardar</button>
+          <button class="btn btn-secondary" onclick="ejecutarBackupAhora()">⚡ Backup ahora</button>
+        </div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Backup en NAS (opcional)</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Copia adicional en servidor de red</div></div>
+          <span class="badge ${r.config?.backup_auto_type==='smb'?'b-aprobada':'b-revision'}">${r.config?.backup_auto_type==='smb'?'Configurado':'No configurado'}</span>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>TIPO DE CONEXIÓN</label>
+            <select id="cfg-backup-auto-type" onchange="toggleNasCreds()">
+              <option value="local" ${r.config?.backup_auto_type!=='smb'?'selected':''}>No usar NAS</option>
+              <option value="smb" ${r.config?.backup_auto_type==='smb'?'selected':''}>SMB/CIFS (Windows/NAS)</option>
+            </select>
+          </div>
+          <div class="field full" id="cfg-nas-host-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>SERVIDOR SMB</label><input type="text" id="cfg-backup-auto-host" value="${r.config?.backup_auto_host||''}" placeholder="//192.168.1.100/backup"/></div>
+          <div class="field" id="cfg-nas-user-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>USUARIO</label><input type="text" id="cfg-backup-auto-user" value="${r.config?.backup_auto_user||''}" placeholder="admin"/></div>
+          <div class="field" id="cfg-nas-pass-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>CONTRASEÑA</label><input type="password" id="cfg-backup-auto-pass" value="${r.config?.backup_auto_pass||''}" placeholder="••••••••"/></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button class="btn btn-primary" onclick="guardarCfg('backups')">💾 Guardar NAS</button>
+          <button class="btn btn-secondary" id="cfg-nas-test-btn" style="display:${r.config?.backup_auto_type==='smb'?'inline-flex':'none'}" onclick="testBackupPath()">🧪 Probar conexión</button>
         </div>
       </div>
     `;
@@ -1793,6 +1800,16 @@ function toggleNasCreds(){
   const type=$('cfg-backup-auto-type')?.value;
   const wrap=['cfg-nas-host-wrap','cfg-nas-user-wrap','cfg-nas-pass-wrap'];
   wrap.forEach(id=>{const el=$(id);if(el)el.style.display=type==='smb'?'block':'none'});
+  const testBtn=$('cfg-nas-test-btn');
+  if(testBtn)testBtn.style.display=type==='smb'?'inline-flex':'none';
+}
+
+async function ejecutarBackupAhora(){
+  if(!confirm('¿Ejecutar backup ahora?'))return;
+  try{
+    const r=await api('POST','/configuracion/backups-auto/now');
+    toast(r.message||'Backup iniciado','success');
+  }catch(e){toast(e.message,'error')}
 }
 
 async function verCronLogs(){

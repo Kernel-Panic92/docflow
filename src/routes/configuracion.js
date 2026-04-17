@@ -565,6 +565,15 @@ router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
   }
 });
 
+router.post('/backups-auto/now', requireRol('admin'), async (req, res) => {
+  try {
+    execSync('cd /root/vitamar-docs && /usr/bin/node src/scripts/backup-auto.js >> /root/vitamar-docs/logs/backup-auto.log 2>&1 &', { stdio: 'pipe' });
+    res.json({ ok: true, message: 'Backup iniciado en segundo plano' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── TAREAS CRON ────────────────────────────────────────────────────────────
 router.get('/cron', requireRol('admin'), async (req, res) => {
   try {
