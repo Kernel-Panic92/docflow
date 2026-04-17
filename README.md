@@ -12,13 +12,36 @@ Sistema de gestión documental para facturas electrónicas colombianas (DIAN). I
 
 ---
 
+## Instalación rápida (recomendada)
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/TU_USUARIO/vitamar-docs.git
+cd vitamar-docs
+
+# Ejecutar el instalador interactivo
+chmod +x install.sh
+./install.sh
+```
+
+El instalador configurará automáticamente:
+- Node.js y PM2
+- PostgreSQL
+- Base de datos y migraciones
+- Variables de entorno (.env)
+- Proxy reverso con Nginx (opcional)
+- HTTPS con Let's Encrypt (opcional)
+- Backup automático (opcional)
+- Fail2ban para protección
+
+---
+
 ## Requisitos del servidor
 
 - Ubuntu Server 22.04 LTS (o cualquier distribución basada en Debian)
 - 2 vCPU, 4GB RAM, 40GB disco (mínimo)
 - PostgreSQL 14+
 - Node.js 18+
-- Nginx (para proxy reverso y SSL)
 
 ---
 
