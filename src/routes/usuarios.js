@@ -64,9 +64,18 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
   const { nombre, email, rol, area_id, activo, password } = req.body;
   
   try {
+    // Normalizar area_id - si es string vacío, convertir a null
+    const areaIdValue = (area_id === '' || !area_id) ? null : area_id;
+    
     // Construir query dinámicamente
-    const updates = ['nombre=$1', 'rol=$2', 'area_id=$3', 'activo=$4'];
-    const values = [nombre?.trim(), rol, area_id || null, activo !== false];
+    const updates = ['nombre=$1', 'rol=$2', 'activo=$3'];
+    const values = [nombre?.trim(), rol, activo !== false];
+    
+    // Agregar area_id como texto (PostgreSQL lo maneja mejor así)
+    if (areaIdValue) {
+      updates.push(`area_id=$${updates.length + 1}`);
+      values.push(areaIdValue);
+    }
     
     let query = `UPDATE usuarios SET ${updates.join(', ')}`;
     
