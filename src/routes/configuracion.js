@@ -460,18 +460,28 @@ router.get('/backups-auto', requireRol('admin'), async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT clave, valor FROM configuracion 
-       WHERE clave IN ('backup_auto_enabled','backup_auto_cron','backup_auto_path','backup_auto_retention')
+       WHERE clave IN ('backup_auto_enabled','backup_auto_cron','backup_auto_path','backup_auto_retention','backup_auto_type','backup_auto_host','backup_auto_user','backup_auto_pass')
        ORDER BY clave`
     );
     
     const cfg = {};
     for (const row of rows) cfg[row.clave] = row.valor || '';
     
-    const nasMounted = fs.existsSync('/mnt/vitamar-nas/backup') || fs.existsSync('/media/vitamar-nas/backup');
+    let nasMounted = false;
+    if (cfg.backup_auto_type === 'smb') {
+      nasMounted = true;
+    } else {
+      nasMounted = fs.existsSync(cfg.backup_auto_path || '/mnt/vitamar-nas/backup');
+    }
+    
+    let lastBackup = null;
     const backupsPath = cfg.backup_auto_path || '/mnt/vitamar-nas/backup';
-    const lastBackup = fs.existsSync(backupsPath) 
-      ? execSync(`ls -t ${backupsPath}/vitamar_backup_*.zip 2>/dev/null | head -1 || echo none`).toString().trim()
-      : 'none';
+    if (cfg.backup_auto_type === 'smb') {
+      lastBackup = '(SMB - se actualiza tras el próximo backup)';
+    } else if (fs.existsSync(backupsPath)) {
+      const files = execSync(`ls -t ${backupsPath}/vitamar_backup_*.zip 2>/dev/null | head -1 || echo none`).toString().trim();
+      lastBackup = files !== 'none' ? files : null;
+    }
     
     res.json({ 
       config: cfg, 
@@ -485,7 +495,7 @@ router.get('/backups-auto', requireRol('admin'), async (req, res) => {
 });
 
 router.put('/backups-auto', requireRol('admin'), async (req, res) => {
-  const { backup_auto_enabled, backup_auto_cron, backup_auto_path, backup_auto_retention } = req.body;
+  const { backup_auto_enabled, backup_auto_cron, backup_auto_path, backup_auto_retention, backup_auto_type, backup_auto_host, backup_auto_user, backup_auto_pass } = req.body;
   
   const client = await db.getClient();
   try {
@@ -496,6 +506,10 @@ router.put('/backups-auto', requireRol('admin'), async (req, res) => {
       ['backup_auto_cron', backup_auto_cron],
       ['backup_auto_path', backup_auto_path],
       ['backup_auto_retention', backup_auto_retention],
+      ['backup_auto_type', backup_auto_type],
+      ['backup_auto_host', backup_auto_host],
+      ['backup_auto_user', backup_auto_user],
+      ['backup_auto_pass', backup_auto_pass],
     ];
     
     for (const [clave, valor] of updates) {
@@ -527,15 +541,27 @@ router.put('/backups-auto', requireRol('admin'), async (req, res) => {
 });
 
 router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
-  const backupPath = req.body.path || '/mnt/vitamar-nas/backup';
+  const { path: backupPath, type, host, user, pass } = req.body;
   
   try {
-    const testFile = path.join(backupPath, '.vitamar-test');
-    fs.writeFileSync(testFile, 'test');
-    fs.unlinkSync(testFile);
-    res.json({ ok: true, message: 'Ruta accesible para escritura' });
+    if (type === 'smb' && host) {
+      const test = execSync(`curl -s -u "${user}:${pass}" --connect-timeout 5 "smb://${host.replace(/\\/g, '/')}/" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
+      if (test.includes('FAIL')) {
+        return res.status(400).json({ ok: false, error: 'No se pudo conectar al servidor SMB' });
+      }
+      res.json({ ok: true, message: 'Conexión SMB exitosa' });
+    } else {
+      const testDir = backupPath || '/mnt/vitamar-nas/backup';
+      if (!fs.existsSync(testDir)) {
+        return res.status(400).json({ ok: false, error: `Directorio no existe: ${testDir}` });
+      }
+      const testFile = path.join(testDir, '.vitamar-test');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      res.json({ ok: true, message: 'Ruta accesible para escritura' });
+    }
   } catch (err) {
-    res.status(400).json({ ok: false, error: `No se puede escribir en ${backupPath}: ${err.message}` });
+    res.status(400).json({ ok: false, error: `Error probando conexión: ${err.message}` });
   }
 });
 

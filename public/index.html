@@ -1475,10 +1475,10 @@ async function rConfig(){
     
     <div id="cfg-content">Cargando...</div>
   `;
-  renderCfgTab(cfg);
+  await renderCfgTab(cfg);
 }
 
-function renderCfgTab(cfg){
+async function renderCfgTab(cfg){
   const c=$('cfg-content');
   if(!c)return;
   
@@ -1653,13 +1653,22 @@ function renderCfgTab(cfg){
             </select>
           </div>
           <div class="field"><label>FRECUENCIA (cron)</label><input type="text" id="cfg-backup-auto-cron" value="${r.config?.backup_auto_cron||'0 2 * * *'}" placeholder="0 2 * * *"/><div style="font-size:11px;color:var(--muted);margin-top:4px">Formato: minuto hora día mes díaSemana. Ej: "0 2 * * *" = diario a las 2am</div></div>
-          <div class="field full"><label>RUTA NAS</label><input type="text" id="cfg-backup-auto-path" value="${r.config?.backup_auto_path||'/mnt/vitamar-nas/backup'}" placeholder="/mnt/vitamar-nas/backup"/></div>
+          <div class="field full"><label>RUTA NAS</label><input type="text" id="cfg-backup-auto-path" value="${r.config?.backup_auto_path||'/mnt/vitamar-nas/backup'}" placeholder="/mnt/vitamar-nas/backup"/><div style="font-size:11px;color:var(--muted);margin-top:4px">Ruta local montada o URL SMB (smb://servidor/carpeta)</div></div>
+          <div class="field"><label>TIPO DE CONEXIÓN</label>
+            <select id="cfg-backup-auto-type" onchange="toggleNasCreds()">
+              <option value="local" ${r.config?.backup_auto_type!=='smb'?'selected':''}>Directo (ruta local montada)</option>
+              <option value="smb" ${r.config?.backup_auto_type==='smb'?'selected':''}>SMB/CIFS (red Windows/NAS)</option>
+            </select>
+          </div>
+          <div class="field" id="cfg-nas-host-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>SERVIDOR SMB</label><input type="text" id="cfg-backup-auto-host" value="${r.config?.backup_auto_host||''}" placeholder="//192.168.1.100/backup"/></div>
+          <div class="field" id="cfg-nas-user-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>USUARIO SMB</label><input type="text" id="cfg-backup-auto-user" value="${r.config?.backup_auto_user||''}" placeholder="admin"/></div>
+          <div class="field" id="cfg-nas-pass-wrap" style="display:${r.config?.backup_auto_type==='smb'?'block':'none'}"><label>CONTRASEÑA SMB</label><input type="password" id="cfg-backup-auto-pass" value="${r.config?.backup_auto_pass||''}" placeholder="••••••••"/></div>
           <div class="field"><label>RETENCIÓN (días)</label><input type="number" id="cfg-backup-auto-retention" value="${r.config?.backup_auto_retention||'7'}" placeholder="7"/></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:8px;margin:16px 0">
           <span style="font-size:13px;color:var(--muted)">NAS conectada:</span>
           <span class="badge ${r.nasMounted?'b-aprobada':'b-revision'}">${r.nasMounted?'Sí':'No'}</span>
-          <button class="btn btn-secondary btn-sm" onclick="testBackupPath()">🧪 Probar ruta</button>
+          <button class="btn btn-secondary btn-sm" onclick="testBackupPath()">🧪 Probar conexión</button>
         </div>
         ${r.lastBackup?'<div style="font-size:12px;color:var(--muted)">Último backup: '+r.lastBackup.split('/').pop()+'</div>':''}
         <div style="display:flex;gap:10px;margin-top:20px">
@@ -1729,6 +1738,10 @@ async function guardarCfg(tab){
     data.backup_auto_enabled=$('cfg-backup-auto-enabled')?.value||'false';
     data.backup_auto_cron=$('cfg-backup-auto-cron')?.value?.trim()||'';
     data.backup_auto_path=$('cfg-backup-auto-path')?.value?.trim()||'/mnt/vitamar-nas/backup';
+    data.backup_auto_type=$('cfg-backup-auto-type')?.value||'local';
+    data.backup_auto_host=$('cfg-backup-auto-host')?.value?.trim()||'';
+    data.backup_auto_user=$('cfg-backup-auto-user')?.value?.trim()||'';
+    data.backup_auto_pass=$('cfg-backup-auto-pass')?.value||'';
     data.backup_auto_retention=$('cfg-backup-auto-retention')?.value?.trim()||'7';
     const r=await api('PUT','/configuracion/backups-auto',data);
     toast('Configuración de backups guardada','success');
@@ -1763,10 +1776,23 @@ async function f2bAction(action){
 async function testBackupPath(){
   const path=$('cfg-backup-auto-path')?.value?.trim();
   if(!path){toast('Ingresa la ruta','error');return}
+  const type=$('cfg-backup-auto-type')?.value;
+  const data={path,type};
+  if(type==='smb'){
+    data.host=$('cfg-backup-auto-host')?.value?.trim();
+    data.user=$('cfg-backup-auto-user')?.value?.trim();
+    data.pass=$('cfg-backup-auto-pass')?.value;
+  }
   try{
-    const r=await api('POST','/configuracion/backups-auto/test',{path});
-    toast('Ruta accesible para escritura','success');
+    const r=await api('POST','/configuracion/backups-auto/test',data);
+    toast('Conexión exitosa','success');
   }catch(e){toast(e.message,'error')}
+}
+
+function toggleNasCreds(){
+  const type=$('cfg-backup-auto-type')?.value;
+  const wrap=['cfg-nas-host-wrap','cfg-nas-user-wrap','cfg-nas-pass-wrap'];
+  wrap.forEach(id=>{const el=$(id);if(el)el.style.display=type==='smb'?'block':'none'});
 }
 
 async function verCronLogs(){
