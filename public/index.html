@@ -765,8 +765,8 @@ async function rPend(){
     return `<div class="tbl" style="cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:20px;border-left:4px solid ${f.prioridad==='critico'?'var(--danger)':f.prioridad==='alerta'?'var(--warning)':f.estado==='causada'?'#A78BFA':'var(--accent)'}" onclick="abrirF('${f.id}')">
       <div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mono">${esc(f.numero_factura)}</span>${badge}${tipoBadge}</div>
       <div style="font-weight:500;margin-bottom:4px">${esc(f.proveedor_nombre||'Desconocido')}</div>
-      <div style="font-size:12px;color:var(--muted)">${esc(f.area_nombre||'Sin área')} · Recibida: ${fdate(f.recibida_en)}</div></div>
-      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}${f.limite_dian?`<div style="font-size:12px;color:${f.prioridad==='critico'?'var(--danger)':'var(--muted)'}">Límite: ${fdate(f.limite_dian)}</div>`:''}</div>
+      <div style="font-size:12px;color:var(--muted)">${esc(f.area_nombre||'Sin área')} · Recibida: ${fdatetime(f.recibida_en)}</div></div>
+      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}${f.limite_pago?`<div style="font-size:12px;color:${new Date(f.limite_pago)<new Date()?'var(--danger)':f.prioridad==='alerta'?'var(--warning)':'var(--muted)'}">Vence: ${fdate(f.limite_pago)}</div>`:f.limite_dian?`<div style="font-size:12px;color:${f.prioridad==='critico'?'var(--danger)':'var(--muted)'}">DIAN: ${fdate(f.limite_dian)}</div>`:''}</div>
     </div>`;
   }
   
@@ -822,7 +822,7 @@ async function abrirF(id){
   const ei=EORD.indexOf(f.estado);
   const prog=EORD.map((e,i)=>{const d=i<=ei;return`<div style="display:flex;align-items:center"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:${d?'var(--accent)':'var(--surface2)'};flex-shrink:0"></div><span style="font-size:10px;color:${d?'var(--accent)':'var(--muted)'};margin-top:4px">${EM[e]?.l||e}</span></div>${i<EORD.length-1?`<div style="width:24px;height:2px;background:${d?'var(--accent)':'var(--border)'}"></div>`:''}</div>`}).join('');
   const acc=[];
-  if(['recibida','revision'].includes(f.estado)){acc.push(`<button class="btn btn-success btn-sm" onclick="mAprobar('${id}')">✓ Aprobar</button>`);acc.push(`<button class="btn btn-danger btn-sm" onclick="acF('${id}','rechazar')">✗ Rechazar</button>`);}
+  if(['recibida','revision'].includes(f.estado)){acc.push(`<button class="btn btn-success btn-sm" onclick="mAprobar('${id}')">✓ Aprobar</button>`);acc.push(`<button class="btn btn-danger btn-sm" onclick="mRechazar('${id}')">✗ Rechazar</button>`);}
   if(f.estado==='aprobada')acc.push(`<button class="btn btn-success btn-sm" onclick="acF('${id}','causar')">📥 Causar</button>`);
   const isTesorero=['admin','tesorero'].includes(S.usuario?.rol);
   if(f.estado==='causada'&&isTesorero){
@@ -909,9 +909,29 @@ async function doAprobar(id){
   }catch(e){toast(e.message,'error')}
 }
 
+async function mRechazar(id){
+  showM('Rechazar factura',`
+    <div style="margin-bottom:16px;padding:12px;background:rgba(248,113,113,.1);border-radius:8px;border:1px solid rgba(248,113,113,.2)">
+      <div style="font-size:12px;color:var(--muted)">¿Por qué rechazas esta factura?</div>
+    </div>
+    <div class="field"><label>MOTIVO DEL RECHAZO *</label><textarea id="rechazo-motivo" rows="4" placeholder="Ej: Factura duplicada, valores incorrectos, falta orden de compra..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeM()">Cancelar</button><button class="btn btn-danger" onclick="doRechazar('${id}')">✗ Confirmar rechazo</button></div>
+  `,400);
+}
+
+async function doRechazar(id){
+  const motivo=$('rechazo-motivo')?.value?.trim();
+  if(!motivo){toast('Ingresa el motivo del rechazo','error');return}
+  try{
+    await api('PATCH',`/facturas/${id}/rechazar`,{motivo});
+    closeM();
+    toast('Factura rechazada','success');
+    goTo(S.view);
+  }catch(e){toast(e.message,'error')}
+}
+
 async function acF(id,a){
   let b={};
-  if(a==='rechazar'){const m=prompt('Motivo del rechazo:');if(!m)return;b={motivo:m};}
   try{await api('PATCH',`/facturas/${id}/${a}`,b);closeM();toast('Acción ejecutada','success');goTo(S.view)}catch(e){toast(e.message,'error')}
 }
 
