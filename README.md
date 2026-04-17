@@ -337,12 +337,44 @@ El sistema incluye backup/restore completo desde la GUI (**Backup y Restauració
 
 ## Actualización
 
+### Método automático (recomendado)
+
+```bash
+cd vitamar-docs
+chmod +x update.sh
+./update.sh
+```
+
+El actualizador:
+1. Hace backup preventivo automáticamente
+2. Descarga la última release desde GitHub
+3. Actualiza archivos (mantiene `.env`, `uploads/`, `backups/`)
+4. Instala dependencias
+5. Ofrece ejecutar migraciones
+6. Reinicia el servicio
+
+**Requiere:** Token de GitHub en `~/.vitamar_token` (para repos privados).
+
+### Método manual
+
 ```bash
 cd vitamar-docs
 git pull
 npm install
+node src/db/migrate.js  # si hay migraciones pendientes
 pm2 restart vitamar-docs
 ```
+
+---
+
+## Releases
+
+Las releases se publican en GitHub. Para crear una release:
+
+1. En GitHub, ir a **Releases** → **Draft a new release**
+2. Seleccionar tag (ej: `v1.2.0`)
+3. Poner nombre y descripción
+4. Marcar como **Release** (no pre-release) para canal estable
 
 ---
 
