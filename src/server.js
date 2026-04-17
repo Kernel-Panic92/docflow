@@ -44,6 +44,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Archivos estáticos (frontend) ───────────────────────────────────────────
+const fs = require('fs');
+app.get('/app.js', (req, res) => {
+  const file = path.join(__dirname, '../public/app.txt');
+  const data = fs.readFileSync(file);
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Content-Length', data.length);
+  res.end(data);
+});
 app.use(express.static(path.join(__dirname, '../public')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
