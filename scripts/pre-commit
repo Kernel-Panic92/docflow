@@ -1,0 +1,12 @@
+#!/bin/bash
+
+echo "🔍 Validando HTML antes del commit..."
+
+node scripts/validate-html.js
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ El commit fue bloqueado. Corrige los errores primero."
+  exit 1
+fi
+
+echo "✅ Validación exitosa, proceediendo con el commit..."
