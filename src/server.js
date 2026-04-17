@@ -4,6 +4,7 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const cookieParser = require('cookie-parser');
+const fs      = require('fs');
 
 const app = express();
 
@@ -44,15 +45,21 @@ app.get('/api/health', (req, res) => {
 });
 
 // ─── Archivos estáticos (frontend) ───────────────────────────────────────────
-const fs = require('fs');
-app.get('/app.js', (req, res) => {
-  const file = path.join(__dirname, '../public/app.txt');
-  const data = fs.readFileSync(file);
-  res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Content-Length', data.length);
-  res.end(data);
-});
 app.use(express.static(path.join(__dirname, '../public')));
+
+app.get('/app.js', (req, res) => {
+  const file = path.join(__dirname, '../public/index.html');
+  const content = fs.readFileSync(file, 'utf8');
+  const start = content.indexOf('<script>') + 8;
+  const end = content.lastIndexOf('</body>');
+  const js = content.substring(start, end);
+  
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Content-Length', Buffer.byteLength(js));
+  res.send(js);
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
