@@ -644,6 +644,16 @@ router.post('/backups-auto/now', requireRol('admin'), async (req, res) => {
     await agregarQuery('SELECT clave, valor FROM configuracion', 'configuracion');
     await agregarQuery('SELECT id, nombre, email, rol, activo, cambio_password, creado_en FROM usuarios', 'usuarios');
     
+    // Agregar uploads (facturas y adjuntos)
+    const uploadsDir = path.join(APP_DIR, 'uploads');
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      if (files.length > 0) {
+        console.log('[Backup] Agregando', files.length, 'archivos de uploads');
+        zip.addLocalFolder(uploadsDir, 'uploads');
+      }
+    }
+    
     zip.writeZip(backupPath);
     console.log('[Backup] Archivo escrito:', backupPath);
     console.log('[Backup] Existe archivo:', fs.existsSync(backupPath));

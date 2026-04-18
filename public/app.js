@@ -1050,14 +1050,20 @@ async function descargarBackup(tipo='completo'){
   try{
     pollInterval=setInterval(async()=>{
       try{
-        const p=await fetch('/api/backup/progreso',{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-        if(p.stage){
-          const pct=Math.round((p.current/p.total)*100)||0;
-          document.getElementById('backup-progress-bar').style.width=pct+'%';
-          document.getElementById('backup-progress-msg').textContent=p.message||'Procesando...';
+        const p=await fetch('/api/backup/progreso',{headers:{Authorization:`Bearer ${token}`}});
+        if(p.ok){
+          const j=await p.json();
+          if(j.stage){
+            const pct=Math.round((j.current/j.total)*100)||0;
+            document.getElementById('backup-progress-bar').style.width=pct+'%';
+            document.getElementById('backup-progress-msg').textContent=j.message||'Procesando...';
+          }
         }
       }catch(_){}
-    },800);
+    },1000);
+    
+    // Add delay to allow progress to start
+    await new Promise(r=>setTimeout(r,500));
     
     const url=tipo==='config'?'/api/backup?tipo=config':'/api/backup';
     const resp=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
