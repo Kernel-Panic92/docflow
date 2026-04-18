@@ -130,11 +130,16 @@ async function generarZip(tipo = 'completo') {
 // GET /api/backup — genera y descarga ZIP inmediatamente
 // ?tipo=config (solo DB) | ?tipo=completo (DB + uploads)
 router.get('/', soloAdmin, async (req, res) => {
+  const timestamp = Date.now();
+  const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
+  
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       res.status(500).json({ error: 'Timeout generando backup' });
     }
-  }, 120000); // 2 min timeout
+    try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch(e) {}
+    backupProgress = { total: 0, current: 0, message: '', stage: '' };
+  }, 180000); // 3 min timeout
 
   try {
     const tipo = req.query.tipo === 'config' ? 'config' : 'completo';
@@ -144,58 +149,36 @@ router.get('/', soloAdmin, async (req, res) => {
     clearTimeout(timeout);
     
     const fecha = new Date().toISOString().slice(0, 10);
-    const timestamp = Date.now();
     const filename = tipo === 'config' 
       ? `vitamar_backup_config_${fecha}_${timestamp}.zip`
       : `vitamar_backup_${fecha}_${timestamp}.zip`;
 
-    console.log('[Backup] Archivo:', filename);
+    console.log('[Backup] Escribiendo:', filename);
     
-    res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    res.on('close', () => {
-      backupProgress = { total: 0, current: 0, message: '', stage: '' };
-      try { 
-        const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
-        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); 
-      } catch(e) {}
-    });
-    
-    // Write directly to response
-    const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
-    
-    // Write to temp file
+    // Ensure dir exists
     if (!fs.existsSync(BACKUP_DIR)) {
       fs.mkdirSync(BACKUP_DIR, { recursive: true });
     }
     
+    // Write zip file
     zip.writeZip(tempFile);
     
-    // Use res.sendFile for better handling
-    res.sendFile(tempFile, { 
-      dotfiles: 'allow',
-      maxAge: 0,
-      headers: {
-        'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
-    }, (err) => {
+    console.log('[Backup] Archivo escrito, size:', fs.statSync(tempFile).size);
+    
+    // Use res.download for clean download
+    res.download(tempFile, filename, (err) => {
       if (err) {
-        console.error('[Backup] SendFile error:', err.message);
+        console.error('[Backup] Download error:', err.message);
       }
-      // Clean up after send
-      try { fs.unlinkSync(tempFile); } catch(e) {}
+      // Cleanup
+      try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch(e) {}
       backupProgress = { total: 0, current: 0, message: '', stage: '' };
     });
   } catch (err) {
     clearTimeout(timeout);
     console.error('[Backup] Error:', err.message);
-    // Clean up temp file on error
-    try {
-      const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
-      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-    } catch(e) {}
+    try { if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); } catch(e) {}
+    backupProgress = { total: 0, current: 0, message: '', stage: '' };
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error generando backup: ' + err.message });
     }
