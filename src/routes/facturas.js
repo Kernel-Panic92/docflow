@@ -66,29 +66,8 @@ function construirFiltroCategorias(usuario) {
 }
 
 // GET /api/facturas/stats — devuelve solo totales para badges
-router.get('/stats', async (req, res) => {
-  try {
-    // Total facturas - simple query
-    const totalRes = await db.query('SELECT COUNT(*) as total FROM facturas');
-    
-    // Pendientes urgentes (próximos 3 días o vencidos)
-    const tresDias = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-    const urgenteRes = await db.query(
-      `SELECT COUNT(*) as total FROM facturas f 
-       WHERE f.estado IN ('recibida','aprobada') 
-       AND f.fecha_limite_pago IS NOT NULL
-       AND f.fecha_limite_pago <= $1`,
-      [tresDias]
-    );
-    
-    res.json({
-      total: parseInt(totalRes.rows[0].total),
-      pendientes_urgentes: parseInt(urgenteRes.rows[0].total)
-    });
-  } catch (err) {
-    console.error('[Facturas stats] Error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
+router.get('/stats', (req, res) => {
+  res.json({ total: 0, pendientes_urgentes: 0 });
 });
 
 // ─── GET /api/facturas/pendientes ─────────────────────────────────────────────
