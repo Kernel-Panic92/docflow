@@ -91,13 +91,13 @@ router.get('/stats', async (req, res) => {
     );
     
     // Pendientes urgentes (próximos 3 días o vencidos)
-    const hoy = new Date();
+    const tresDias = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
     const urgenteRes = await db.query(
       `SELECT COUNT(*) as total FROM facturas f 
        WHERE f.estado IN ('recibida','aprobada') 
-       AND f.fecha_limite_pago <= $${params.length + 1}
-       AND ${where}`,
-      [...params, new Date(hoy.getTime() + 3 * 24 * 60 * 60 * 1000)]
+       AND f.fecha_limite_pago IS NOT NULL
+       AND f.fecha_limite_pago <= $1`,
+      [tresDias]
     );
     
     res.json({
@@ -106,7 +106,7 @@ router.get('/stats', async (req, res) => {
     });
   } catch (err) {
     console.error('[Facturas stats] Error:', err.message);
-    res.json({ total: 0, pendientes_urgentes: 0 });
+    res.status(500).json({ error: err.message });
   }
 });
 
