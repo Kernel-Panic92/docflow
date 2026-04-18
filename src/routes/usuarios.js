@@ -63,6 +63,8 @@ router.post('/', requireRol('admin'), async (req, res) => {
 router.put('/:id', requireRol('admin'), async (req, res) => {
   const { nombre, email, rol, area_id, activo, password } = req.body;
   
+  console.log('[DEBUG] PUT usuarios - body:', JSON.stringify({ nombre, email, rol, area_id, activo, password: password ? 'SET' : 'EMPTY', id: req.params.id }));
+  
   try {
     let params = [nombre?.trim(), rol, activo === true];
     let query = `UPDATE usuarios SET nombre = $1, rol = $2, activo = $3`;
@@ -77,6 +79,7 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
         return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
       }
       const hash = await bcrypt.hash(password, 12);
+      console.log('[DEBUG] password hash length:', hash.length);
       params.push(hash);
       query += `, password_hash = $${params.length}`;
     }
@@ -84,10 +87,14 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
     params.push(req.params.id);
     query += `, actualizado_en = NOW() WHERE id = $${params.length}::uuid RETURNING id, nombre, email, rol, area_id, activo`;
     
+    console.log('[DEBUG] Query:', query);
+    console.log('[DEBUG] Params:', params.map((p, i) => i === params.length - 1 ? p : typeof p));
+    
     const { rows } = await db.query(query, params);
     if (!rows[0]) return res.status(404).json({ error: 'Usuario no encontrado' });
     res.json(rows[0]);
   } catch (err) {
+    console.error('[DEBUG] Error:', err.message, err.stack);
     res.status(500).json({ error: err.message });
   }
 });
