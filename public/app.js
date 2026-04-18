@@ -1041,12 +1041,13 @@ async function descargarBackup(tipo='completo'){
     document.getElementById('backup-progress-bar').style.width='100%';
     document.getElementById('backup-progress-msg').textContent='¡Completado! Descargando...';
     document.getElementById('backup-progress-msg').style.color='var(--success)';
-    document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00;margin-top:8px">✓ Backup completado</div>';
+    document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00;margin-top:8px">[OK] Backup completado</div>';
     
     // Paso 2: Descargar
-    setTimeout(async(){
-      document.getElementById('backup-terminal').innerHTML+='<div>↓ Descargando archivo...</div>';
-      try{
+    setTimeout(function(){
+      document.getElementById('backup-terminal').innerHTML+='<div>[DESCARGANDO] Descargando archivo...</div>';
+      (async function(){
+        try{
         const dlUrl=`/api/backup?action=download&filename=${encodeURIComponent(data.filename)}`;
         const dlResp=await fetch(dlUrl,{headers:{Authorization:`Bearer ${token}`}});
         if(!dlResp.ok)throw new Error('Error descargando');
@@ -1055,17 +1056,18 @@ async function descargarBackup(tipo='completo'){
         const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=data.filename;a.click();
         URL.revokeObjectURL(a.href);
         
-        document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00">✓ Descarga completada!</div>';
-        setTimeout(()=>{
+        document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00">[OK] Descarga completada!</div>';
+        setTimeout(function(){
           closeM();
           toast('Backup descargado','success');
           cargarListaBackups();
         },1000);
       }catch(e){
-        document.getElementById('backup-terminal').innerHTML+=`<div style="color:red">✗ Error: ${e.message}</div>`;
+        document.getElementById('backup-terminal').innerHTML+='<div style="color:red">[X] Error: '+e.message+'</div>';
         closeM();
         toast(e.message,'error');
       }
+      })();
       btn.disabled=false;btn.textContent=label;
     },500);
     
