@@ -1719,19 +1719,23 @@ async function ejecutarActualizacion(){
           const status=await api('GET','/configuracion/updater/status');
           if(status&&status.updaterLog?.includes('COMPLETADA')){
             clearInterval(updatePolling);
-            await api('POST','/configuracion/updater/restart');
+            toast('Actualización completada, reiniciando...','success');
+            try{
+              await api('POST','/configuracion/updater/restart');
+            }catch(e){}
             // Esperar hasta que el servidor responda
             let intentos=0;
             const esperarServidor=setInterval(async()=>{
               try{
-                await fetch('/api/health',{headers:{Authorization:`Bearer ${S.token}`}});
+                await fetch('/api/health');
                 clearInterval(esperarServidor);
-                window.location.href=window.location.href;
+                toast('Servicio reiniciado','success');
+                window.location.reload();
               }catch(e){
                 intentos++;
                 if(intentos>60){
                   clearInterval(esperarServidor);
-                  window.location.href=window.location.href;
+                  window.location.reload();
                 }
               }
             },2000);
