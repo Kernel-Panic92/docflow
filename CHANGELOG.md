@@ -55,21 +55,21 @@ No hay tests unitarios ni de integración.
 ## Instalación
 
 ```bash
-#克隆项目
+# Clone project
 git clone https://github.com/Kernel-Panic92/vitamar-docs.git
 cd vitamar-docs
 
-#安装依赖
+# Install dependencies
 npm install
 
-#配置环境变量
+# Configure environment
 cp .env.example .env
-# editar .env con credenciales
+# edit .env with credentials
 
-#Ejecutar migraciones
+# Run migrations
 npm run migrate
 
-#Iniciar
+# Start
 pm2 start src/server.js --name vitamar-docs
 ```
 
