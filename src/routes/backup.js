@@ -127,14 +127,37 @@ async function generarZip(tipo = 'completo') {
   return zip;
 }
 
-// GET /api/backup — genera y guarda ZIP, luego descarga
-// ?tipo=config (solo DB) | ?tipo=completo (DB + uploads)
+// GET /api/backup — dos pasos: generar y luego descargar
+// Paso 1: /api/backup?action=generate&tipo=config|completo -> devuelve filename
+// Paso 2: /api/backup?action=download&filename=xxx -> descarga el archivo
 router.get('/', soloAdmin, async (req, res) => {
+  const action = req.query.action;
   const timestamp = Date.now();
 
   try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    }
+
+    // Paso 2: Descargar archivo existente
+    if (action === 'download') {
+      const filename = req.query.filename;
+      if (!filename || !/^vitamar_backup_[\w\-]+\.zip$/.test(filename)) {
+        return res.status(400).json({ error: 'Nombre de archivo inválido' });
+      }
+      const filepath = path.join(BACKUP_DIR, filename);
+      if (!fs.existsSync(filepath)) {
+        return res.status(404).json({ error: 'Archivo no encontrado' });
+      }
+      return res.download(filepath, filename);
+    }
+
+    // Paso 1: Generar nuevo backup
     const tipo = req.query.tipo === 'config' ? 'config' : 'completo';
     console.log('[Backup] Generando backup tipo:', tipo);
+    
+    // Notify start
+    backupProgress = { total: 100, current: 10, message: 'Generando...', stage: 'generando' };
     
     const zip = await generarZip(tipo);
     
@@ -145,11 +168,6 @@ router.get('/', soloAdmin, async (req, res) => {
 
     console.log('[Backup] Guardando:', filename);
     
-    // Ensure dir exists
-    if (!fs.existsSync(BACKUP_DIR)) {
-      fs.mkdirSync(BACKUP_DIR, { recursive: true });
-    }
-    
     // Save to permanent location
     const filepath = path.join(BACKUP_DIR, filename);
     zip.writeZip(filepath);
@@ -159,10 +177,9 @@ router.get('/', soloAdmin, async (req, res) => {
     
     backupProgress = { total: 0, current: 0, message: '', stage: '' };
     
-    // Download the file
-    res.download(filepath, filename, (err) => {
-      if (err) console.error('[Backup] Download error:', err.message);
-    });
+    // Instead of downloading, just return the filename so frontend can download
+    res.json({ ok: true, filename: filename, size: size, message: 'Backup generado. Descargando...' });
+    
   } catch (err) {
     console.error('[Backup] Error:', err.message);
     backupProgress = { total: 0, current: 0, message: '', stage: '' };

@@ -1017,7 +1017,6 @@ async function descargarBackup(tipo='completo'){
   const label=tipo==='config'?'⚙️ Solo Config':'💾 Completo';
   btn.disabled=true;btn.textContent='Generando...';
   
-  // Mostrar modal de progreso simple
   const token=localStorage.getItem('vd_t');
   const progresoEl=document.getElementById('mroot');
   progresoEl.innerHTML=`<div class="modal-overlay open">
@@ -1025,39 +1024,74 @@ async function descargarBackup(tipo='completo'){
       <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px">
         ${tipo==='config'?'⚙️ Backup de Configuración':'💾 Backup Completo'}
       </div>
-      <div style="font-size:14px;color:var(--muted);margin-bottom:16px">
-        Generando backup, por favor espera...
+      <div id="backup-progress-msg" style="font-size:14px;color:var(--muted);margin-bottom:12px">Iniciando...</div>
+      <div style="background:var(--surface2);border-radius:6px;height:10px;overflow:hidden;margin-bottom:16px">
+        <div id="backup-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width .5s"></div>
       </div>
-      <div style="text-align:center;font-size:24px;">⏳</div>
-      <div style="display:flex;justify-content:center;margin-top:16px">
+      <div style="display:flex;justify-content:center">
         <button class="btn btn-secondary" onclick="closeM();btn.disabled=false;btn.textContent='${label}'">Cancelar</button>
       </div>
     </div>
   </div>`;
   
+  let cancelled=false;
+  let pollInterval=null;
+  
+  window.cancelarBackupGen=function(){cancelled=true;if(pollInterval)clearInterval(pollInterval);closeM();btn.disabled=false;btn.textContent=label};
+  
   try{
-    const url=tipo==='config'?'/api/backup?tipo=config':'/api/backup';
+    // Paso 1: Generar backup
+    const url=tipo==='config'?'/api/backup?action=generate&tipo=config':'/api/backup?action=generate&tipo=completo';
     const resp=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
     
-    if(!resp.ok){
-      const j=await resp.json().catch(()=>({}));
-      throw new Error(j.error||'Error');
-    }
+    if(!resp.ok){throw new Error((await resp.json().catch(()=>({}))).error||'Error generando')}
     
-    const blob=await resp.blob();
-    const fecha=new Date().toISOString().slice(0,10);
-    const ts=Date.now();
-    const filename=tipo==='config'?`vitamar_backup_config_${fecha}_${ts}.zip`:`vitamar_backup_${fecha}_${ts}.zip`;
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
-    URL.revokeObjectURL(a.href);
+    const data=await resp.json();
+    if(cancelled)return;
     
-    closeM();
-    toast('Backup descargado','success');
+    document.getElementById('backup-progress-bar').style.width='100%';
+    document.getElementById('backup-progress-msg').textContent='¡Completado! Descargando...';
+    document.getElementById('backup-progress-msg').style.color='var(--success)';
+    
+    // Paso 2: Descargar
+    setTimeout(async()=>{
+      try{
+        const dlUrl=`/api/backup?action=download&filename=${encodeURIComponent(data.filename)}`;
+        const dlResp=await fetch(dlUrl,{headers:{Authorization:`Bearer ${token}`}});
+        if(!dlResp.ok)throw new Error('Error descargando');
+        
+        const blob=await dlResp.blob();
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=data.filename;a.click();
+        URL.revokeObjectURL(a.href);
+        
+        closeM();
+        toast('Backup descargado','success');
+        cargarListaBackups();
+      }catch(e){
+        closeM();
+        toast(e.message,'error');
+      }
+      btn.disabled=false;btn.textContent=label;
+    },500);
+    
+    // Polling para progreso mientras genera
+    pollInterval=setInterval(async()=>{
+      try{
+        const p=await fetch('/api/backup/progreso',{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+        if(p.stage && p.stage!=='done'){
+          const pct=Math.round((p.current/p.total)*100)||0;
+          document.getElementById('backup-progress-bar').style.width=pct+'%';
+          document.getElementById('backup-progress-msg').textContent=p.message||'Procesando...';
+        }
+      }catch(_){}
+    },800);
+    
   }catch(e){
+    if(cancelled)return;
     closeM();
     toast(e.message,'error');
+    btn.disabled=false;btn.textContent=label;
   }
-  btn.disabled=false;btn.textContent=label;
 }
 
 async function cargarListaBackups(){
