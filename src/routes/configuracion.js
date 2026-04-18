@@ -714,10 +714,16 @@ router.put('/cron', requireRol('admin'), async (req, res) => {
     
     const newCrontab = lines.join('\n') + '\n';
     
-// Escribir a archivo temporal para evitar problemas de escaping
+    // Debug: mostrar lo que se va a escribir
+    console.log('[CRON] New crontab:', newCrontab);
+    
+    // Escribir a archivo temporal para evitar problemas de escaping
     const cronFile = '/root/vitamar-docs/temp_cron.txt';
     fs.writeFileSync(cronFile, newCrontab);
+    console.log('[CRON] File written, running crontab command');
+    
     execSync(`crontab "${cronFile}"`, { stdio: 'pipe' });
+    console.log('[CRON] Crontab installed');
     try { fs.unlinkSync(cronFile); } catch(e) {}
     
     await db.query(
