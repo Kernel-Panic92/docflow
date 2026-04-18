@@ -65,9 +65,9 @@ function construirFiltroCategorias(usuario) {
   return [];
 }
 
-// GET /api/facturas/stats
-router.get('/stats', (req, res) => {
-  console.log('[STATS] Endpoint called');
+// GET /api/facturas/badge-stats
+router.get('/badge-stats', (req, res) => {
+  console.log('[badge-stats] called');
   res.json({ total: 0, pendientes_urgentes: 0 });
 });
 

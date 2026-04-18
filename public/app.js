@@ -205,7 +205,7 @@ async function goTo(v){
 }
 async function refreshBadges(){
   try{
-    const stats=await api('GET','/facturas/stats');
+    const stats=await api('GET','/facturas/badge-stats');
     const nb=$('nb-f');const np=$('nb-p');
     if(nb)nb.textContent=stats.total||0;
     if(np){
