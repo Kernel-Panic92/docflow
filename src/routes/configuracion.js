@@ -355,7 +355,11 @@ router.post('/updater/update', requireRol('admin'), async (req, res) => {
       execSync('git fetch origin release && git checkout release && git pull origin release', { cwd: APP_DIR, stdio: 'pipe' });
       logUpdater('2b. Rama release - sin cambios locales');
     } else {
-      execSync('git pull origin ' + branch + ' 2>/dev/null || git pull origin main 2>/dev/null', { cwd: APP_DIR, stdio: 'pipe' });
+      try {
+        execSync('git pull origin ' + branch, { cwd: APP_DIR, stdio: 'pipe' });
+      } catch (e) {
+        execSync('git fetch origin && git reset --hard origin/' + branch, { cwd: APP_DIR, stdio: 'pipe' });
+      }
       
       logUpdater('5. Restaurando cambios locales...');
       execSync('git stash pop 2>/dev/null || true', { cwd: APP_DIR, stdio: 'pipe' });
