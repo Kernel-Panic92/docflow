@@ -1,5 +1,15 @@
 # Vitamar Docs - Changelog
 
+## v1.1.3 - Corrección de vulnerabilidades de seguridad
+Fecha: 2026-04-18
+
+### Seguridad corregida
+- ✅ RCE en actualizador: Validación de rama git con regex (solo permite main, master, release)
+- ✅ RCE en test SMB: Sanitización de host/user/pass, encodeURIComponent en URL
+- ✅ Validación de parámetros requeridos en backups-auto/test
+
+---
+
 ## v1.0.1 - Release estable
 Fecha: 2026-04-18
 
@@ -46,6 +56,7 @@ No hay tests unitarios ni de integración.
 
 | Tag | Fecha | Notas |
 |-----|-------|-------|
+| v1.1.3 | 2026-04-18 | Corrección vulnerabilidades RCE |
 | v1.1.2 | 2026-04-18 | Actualizaciones via release (con bugs) |
 | v1.1.0 | 2026-04-18 | Corrección bug backup completo |
 | v1.0.1 | 2026-04-18 | Release estable |

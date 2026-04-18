@@ -332,7 +332,11 @@ router.post('/updater/check', requireRol('admin'), async (req, res) => {
 });
 
 router.post('/updater/update', requireRol('admin'), async (req, res) => {
-  const branch = req.body?.branch || 'main';
+  let branch = req.body?.branch || 'main';
+  
+  if (!/^[a-zA-Z0-9_\-]+$/.test(branch)) {
+    return res.status(400).json({ ok: false, error: 'Rama inválida. Solo letras, números, guiones y guiones bajos.' });
+  }
   
   try {
     logUpdater('========================================');
@@ -343,6 +347,10 @@ router.post('/updater/update', requireRol('admin'), async (req, res) => {
     execSync('git add -A && git stash 2>/dev/null || true', { cwd: APP_DIR, stdio: 'pipe' });
     
     logUpdater('2. Pulling latest changes from ' + branch + '...');
+    const allowedBranches = ['main', 'master', 'release'];
+    if (branch !== 'release' && !allowedBranches.includes(branch)) {
+      branch = 'main';
+    }
     if (branch === 'release') {
       execSync('git fetch origin release && git checkout release && git pull origin release', { cwd: APP_DIR, stdio: 'pipe' });
       logUpdater('2b. Rama release - sin cambios locales');
@@ -586,26 +594,34 @@ router.put('/backups-auto', requireRol('admin'), async (req, res) => {
 });
 
 router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
-  const { path: backupPath, type, host, user, pass } = req.body;
+  let { path: backupPath, type, host, user, pass } = req.body;
   
-  try {
-    if (type === 'smb' && host) {
-      const test = execSync(`curl -s -u "${user}:${pass}" --connect-timeout 5 "smb://${host.replace(/\\/g, '/')}/" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
-      if (test.includes('FAIL')) {
-        return res.status(400).json({ ok: false, error: 'No se pudo conectar al servidor SMB' });
-      }
-      res.json({ ok: true, message: 'Conexión SMB exitosa' });
-    } else {
-      const testDir = backupPath || '/mnt/vitamar-nas/backup';
-      if (!fs.existsSync(testDir)) {
-        return res.status(400).json({ ok: false, error: `Directorio no existe: ${testDir}` });
-      }
-      const testFile = path.join(testDir, '.vitamar-test');
-      fs.writeFileSync(testFile, 'test');
-      fs.unlinkSync(testFile);
-      res.json({ ok: true, message: 'Ruta accesible para escritura' });
+  if (!host || !user || !pass) {
+    return res.status(400).json({ ok: false, error: 'Faltan parámetros requeridos' });
+  }
+  
+  if (type === 'smb' && host) {
+    host = host.replace(/[^a-zA-Z0-9._\-\/]/g, '');
+    user = user.replace(/[^a-zA-Z0-9._\-@]/g, '');
+    pass = pass.replace(/["`$]/g, '');
+    
+    const safeUrl = `smb://${encodeURIComponent(host.replace(/\\/g, '/'))}/`;
+    const test = execSync(`curl -s -u "${user}:${pass}" --connect-timeout 5 "${safeUrl}" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
+    if (test.includes('FAIL')) {
+      return res.status(400).json({ ok: false, error: 'No se pudo conectar al servidor SMB' });
     }
-  } catch (err) {
+    res.json({ ok: true, message: 'Conexión SMB exitosa' });
+  } else {
+    const testDir = backupPath || '/mnt/vitamar-nas/backup';
+    if (!fs.existsSync(testDir)) {
+      return res.status(400).json({ ok: false, error: `Directorio no existe: ${testDir}` });
+    }
+    const testFile = path.join(testDir, '.vitamar-test');
+    fs.writeFileSync(testFile, 'test');
+    fs.unlinkSync(testFile);
+    res.json({ ok: true, message: 'Ruta accesible para escritura' });
+  }
+} catch (err) {
     res.status(400).json({ ok: false, error: `Error probando conexión: ${err.message}` });
   }
 });
