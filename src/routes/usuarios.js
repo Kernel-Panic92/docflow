@@ -73,7 +73,7 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
     
     // Agregar area_id como texto (PostgreSQL lo maneja mejor así)
     if (areaIdValue) {
-      updates.push(`area_id=$${updates.length + 1}`);
+      updates.push(`area_id=CAST($${updates.length + 1} AS uuid)`);
       values.push(areaIdValue);
     }
     
@@ -84,12 +84,12 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
         return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
       }
       const hash = await bcrypt.hash(password, 12);
-      updates.push(`password_hash=$${updates.length + 1}`);
+      updates.push(`password_hash=CAST($${updates.length + 1} AS text)`);
       values.push(String(hash));
     }
     
-    values.push(req.params.id);
-    query += ` WHERE id=$${values.length} RETURNING id, nombre, email, rol, area_id, activo`;
+    values.push(String(req.params.id));
+    query += ` WHERE id=CAST($${values.length} AS uuid) RETURNING id, nombre, email, rol, area_id, activo`;
     
     const { rows } = await db.query(query, values);
     if (!rows[0]) return res.status(404).json({ error: 'Usuario no encontrado' });
