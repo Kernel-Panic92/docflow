@@ -1007,7 +1007,7 @@ async function descargarBackup(tipo='completo'){
   
   // Verificar conexión primero
   try{
-    await fetch('/api/backup/lista',{headers:{Authorization:`Bearer ${token}`}});
+    await fetch('/api/backup?action=generate&tipo=config',{headers:{Authorization:`Bearer ${token}`}});
   }catch(e){
     btn.disabled=false;btn.textContent=label;
     toast('Sin conexión al servidor','error');
