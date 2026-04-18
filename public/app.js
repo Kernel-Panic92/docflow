@@ -1717,12 +1717,24 @@ async function ejecutarActualizacion(){
         await cargarLogActualizacion();
         try{
           const status=await api('GET','/configuracion/updater/status');
-          if(status&&status.message?.includes('COMPLETADA')){
+          if(status&&status.updaterLog?.includes('COMPLETADA')){
             clearInterval(updatePolling);
-            toast('Sistema actualizado','success');
             await api('POST','/configuracion/updater/restart');
-            toast('Reiniciando servicio...','info');
-            setTimeout(()=>location.reload(),3000);
+            // Esperar hasta que el servidor responda
+            let intentos=0;
+            const esperarServidor=setInterval(async()=>{
+              try{
+                await fetch('/api/health',{headers:{Authorization:`Bearer ${S.token}`}});
+                clearInterval(esperarServidor);
+                window.location.href=window.location.href;
+              }catch(e){
+                intentos++;
+                if(intentos>60){
+                  clearInterval(esperarServidor);
+                  window.location.href=window.location.href;
+                }
+              }
+            },2000);
           }
         }catch(e){}
       },3000);
