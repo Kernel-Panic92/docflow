@@ -1006,7 +1006,7 @@ async function descargarBackup(tipo='completo'){
   const token=localStorage.getItem('vd_t');
   const progresoEl=document.getElementById('mroot');
   progresoEl.innerHTML=`<div class="modal-overlay open">
-    <div class="modal" style="max-width:420px">
+    <div class="modal" style="max-width:520px">
       <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px">
         ${tipo==='config'?'⚙️ Backup de Configuración':'💾 Backup Completo'}
       </div>
@@ -1014,8 +1014,11 @@ async function descargarBackup(tipo='completo'){
       <div style="background:var(--surface2);border-radius:6px;height:10px;overflow:hidden;margin-bottom:16px">
         <div id="backup-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width .5s"></div>
       </div>
+      <div id="backup-terminal" style="background:#1a1a1a;color:#00ff00;font-family:monospace;font-size:11px;padding:12px;border-radius:6px;height:120px;overflow-y:auto;line-height:1.6;margin-bottom:16px">
+        <div style="opacity:0.7">[...] Iniciando backup...</div>
+      </div>
       <div style="display:flex;justify-content:center">
-        <button class="btn btn-secondary" onclick="closeM();btn.disabled=false;btn.textContent='${label}'">Cancelar</button>
+        <button class="btn btn-secondary" onclick="window.cancelarBackupGen()">Cancelar</button>
       </div>
     </div>
   </div>`;
@@ -1038,9 +1041,11 @@ async function descargarBackup(tipo='completo'){
     document.getElementById('backup-progress-bar').style.width='100%';
     document.getElementById('backup-progress-msg').textContent='¡Completado! Descargando...';
     document.getElementById('backup-progress-msg').style.color='var(--success)';
+    document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00;margin-top:8px">✓ Backup completado</div>';
     
-    // Paso 2: Descargar
-    setTimeout(async()=>{
+// Paso 2: Descargar
+    setTimeout(async(){
+      document.getElementById('backup-terminal').innerHTML+='<div>↓ Descargando archivo...</div>';
       try{
         const dlUrl=`/api/backup?action=download&filename=${encodeURIComponent(data.filename)}`;
         const dlResp=await fetch(dlUrl,{headers:{Authorization:`Bearer ${token}`}});
@@ -1050,10 +1055,14 @@ async function descargarBackup(tipo='completo'){
         const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=data.filename;a.click();
         URL.revokeObjectURL(a.href);
         
-        closeM();
-        toast('Backup descargado','success');
-        cargarListaBackups();
+        document.getElementById('backup-terminal').innerHTML+='<div style="color:#00ff00">✓ Descarga completada!</div>';
+        setTimeout(()=>{
+          closeM();
+          toast('Backup descargado','success');
+          cargarListaBackups();
+        },1000);
       }catch(e){
+        document.getElementById('backup-terminal').innerHTML+=`<div style="color:red">✗ Error: ${e.message}</div>`;
         closeM();
         toast(e.message,'error');
       }
@@ -1068,6 +1077,12 @@ async function descargarBackup(tipo='completo'){
           const pct=Math.round((p.current/p.total)*100)||0;
           document.getElementById('backup-progress-bar').style.width=pct+'%';
           document.getElementById('backup-progress-msg').textContent=p.message||'Procesando...';
+          // Agregar al terminal
+          const term=document.getElementById('backup-terminal');
+          if(term && p.message){
+            term.innerHTML+=`<div>→ ${p.message}</div>`;
+            term.scrollTop=term.scrollHeight;
+          }
         }
       }catch(_){}
     },800);
