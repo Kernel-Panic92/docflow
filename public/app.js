@@ -918,20 +918,20 @@ async function rBackup(){
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;">
         <div style="font-weight:700;font-size:16px;margin-bottom:6px;">📦 Exportar Backup</div>
         <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6;">
-          Descarga un archivo <strong style="color:var(--text)">ZIP</strong> con toda la información del sistema.
+          Descarga un archivo <strong style="color:var(--text)">ZIP</strong> con la información del sistema.
           Incluye un <code style="color:var(--accent)">backup.json</code> para restaurar.
         </p>
         <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;">
-          <div style="font-weight:600;margin-bottom:10px;">El backup incluye:</div>
+          <div style="font-weight:600;margin-bottom:10px;">Opciones de backup:</div>
           <div style="display:flex;flex-direction:column;gap:6px;color:var(--muted);">
-            <span>✓ Facturas y proveedores</span>
-            <span>✓ Categorías y áreas</span>
-            <span>✓ Usuarios del sistema</span>
-            <span>✓ Centros de operación</span>
-            <span>✓ Configuración IMAP/SMTP</span>
+            <span>✓ Solo configuración (∼20KB): Facturas, categorías, usuarios, áreas, configuración</span>
+            <span>✓ Completo (∼variable): Lo anterior + archivos subidos (PDFs, facturas, adjuntos)</span>
           </div>
         </div>
-        <button class="btn btn-primary" id="btn-descargar-backup" onclick="descargarBackup()" style="width:100%;justify-content:center;padding:13px;">💾 Descargar Backup ZIP</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" id="btn-descargar-backup-config" onclick="descargarBackup('config')" style="flex:1;justify-content:center;padding:11px;">⚙️ Solo Config</button>
+          <button class="btn btn-primary" id="btn-descargar-backup" onclick="descargarBackup('completo')" style="flex:1;justify-content:center;padding:11px;">💾 Completo</button>
+        </div>
         <div id="backup-ok" style="display:none;margin-top:14px;padding:10px 14px;background:rgba(79,190,150,0.1);border:1px solid rgba(79,190,150,0.3);border-radius:9px;font-size:13px;color:var(--success);">✓ Backup generado y descargado correctamente.</div>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;">
@@ -1009,24 +1009,27 @@ function handleRestoreDrop(e){
   }
 }
 
-async function descargarBackup(){
-  const btn=document.getElementById('btn-descargar-backup');
+async function descargarBackup(tipo='completo'){
+  const btn=tipo==='config'?document.getElementById('btn-descargar-backup-config'):document.getElementById('btn-descargar-backup');
+  const label=tipo==='config'?'⚙️ Solo Config':'💾 Completo';
   btn.disabled=true;btn.textContent='Generando...';
   try{
     const token=localStorage.getItem('vd_t');
-    const resp=await fetch('/api/backup',{headers:{Authorization:`Bearer ${token}`}});
+    const url=tipo==='config'?'/api/backup?tipo=config':'/api/backup';
+    const resp=await fetch(url,{headers:{Authorization:`Bearer ${token}`}});
     if(!resp.ok){
       const j=await resp.json().catch(()=>({}));
       throw new Error(j.error||'Error');
     }
     const blob=await resp.blob();
     const fecha=new Date().toISOString().slice(0,10);
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='vitamar_backup_'+fecha+'.zip';a.click();
+    const filename=tipo==='config'?`vitamar_backup_config_${fecha}.zip`:(`vitamar_backup_${fecha}.zip`);
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
     URL.revokeObjectURL(a.href);
     document.getElementById('backup-ok').style.display='block';
     setTimeout(()=>{document.getElementById('backup-ok').style.display='none'},5000);
   }catch(e){toast(e.message,'error')}
-  btn.disabled=false;btn.textContent='💾 Descargar Backup ZIP';
+  btn.disabled=false;btn.textContent=label;
 }
 
 async function cargarListaBackups(){

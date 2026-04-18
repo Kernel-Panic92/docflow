@@ -44,7 +44,8 @@ function getBackupFiles() {
 }
 
 // Helper: genera el ZIP en memoria
-async function generarZip() {
+// tipo: 'config' (solo DB) | 'completo' (DB + uploads)
+async function generarZip(tipo = 'completo') {
   const zip = new AdmZip();
 
   const query = async (sql, fallback = []) => {
@@ -55,6 +56,49 @@ async function generarZip() {
       console.warn('[Backup] Query warning:', e.message);
       return fallback;
     }
+  };
+
+  const cfg = await query('SELECT clave, valor FROM configuracion');
+  const usuarios = await query('SELECT id, nombre, email, rol, area_id, activo, cambio_password, creado_en FROM usuarios');
+  const areas = await query('SELECT * FROM areas');
+  const cats = await query('SELECT * FROM categorias_compra');
+  const centros = await query('SELECT * FROM centros_operacion');
+  const facturas = await query(`
+    SELECT f.*, p.nombre AS proveedor_nombre, p.nit AS proveedor_nit,
+           c.nombre AS categoria_nombre, c.color AS categoria_color
+    FROM facturas f
+    LEFT JOIN proveedores p ON p.id = f.proveedor_id
+    LEFT JOIN categorias_compra c ON c.id = f.categoria_id
+    ORDER BY f.recibida_en DESC LIMIT 1000
+  `);
+  const eventos = await query('SELECT * FROM eventos_flujo ORDER BY creado_en DESC LIMIT 5000');
+
+  const data = {
+    app:       'VitamarDocs',
+    version:   '1.0',
+    tipo:      tipo,
+    generado:  new Date().toISOString(),
+    config:    cfg,
+    usuarios:  usuarios.map(u => ({ ...u, password_hash: '(backup_excluded)' })),
+    areas:     areas,
+    categorias: cats,
+    centros:   centros,
+    facturas:  facturas,
+    eventos:   eventos.length
+  };
+
+  zip.addFile('backup.json', Buffer.from(JSON.stringify(data, null, 2), 'utf8'));
+
+  // Solo agregar uploads si es backup completo
+  if (tipo === 'completo' && fs.existsSync(UPLOAD_DIR)) {
+    const files = fs.readdirSync(UPLOAD_DIR);
+    if (files.length > 0) {
+      zip.addLocalFolder(UPLOAD_DIR, 'uploads');
+    }
+  }
+
+  return zip;
+}
   };
 
   const cfg = await query('SELECT clave, valor FROM configuracion');
@@ -108,12 +152,16 @@ async function generarZip() {
 }
 
 // GET /api/backup — genera y descarga ZIP inmediatamente
+// ?tipo=config (solo DB) | ?tipo=completo (DB + uploads)
 router.get('/', soloAdmin, async (req, res) => {
   try {
-    const zip = await generarZip();
+    const tipo = req.query.tipo === 'config' ? 'config' : 'completo';
+    const zip = await generarZip(tipo);
     const buffer = zip.toBuffer();
     const fecha = new Date().toISOString().slice(0, 10);
-    const filename = `vitamar_backup_${fecha}.zip`;
+    const filename = tipo === 'config' 
+      ? `vitamar_backup_config_${fecha}.zip`
+      : `vitamar_backup_${fecha}.zip`;
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
