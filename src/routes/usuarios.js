@@ -64,34 +64,29 @@ router.put('/:id', requireRol('admin'), async (req, res) => {
   const { nombre, email, rol, area_id, activo, password } = req.body;
   
   try {
-    // Normalizar area_id - si es string vacío, convertir a null
-    const areaIdValue = (area_id === '' || area_id === null || !area_id) ? null : String(area_id);
+    let setClauses = ['nombre = $1', 'rol = $2', 'activo = $3'];
+    let params = [nombre?.trim(), rol, activo === true];
     
-    // Construir query dinámicamente
-    const updates = ['nombre=$1', 'rol=$2', 'activo=CAST($3 AS boolean)'];
-    const values = [nombre?.trim(), rol, activo === true ? 'true' : 'false'];
-    
-    // Agregar area_id como texto (PostgreSQL lo maneja mejor así)
-    if (areaIdValue) {
-      updates.push(`area_id=CAST($${updates.length + 1} AS uuid)`);
-      values.push(areaIdValue);
+    if (area_id && area_id !== '') {
+      setClauses.push('area_id = $4');
+      params.push(area_id);
     }
-    
-    let query = `UPDATE usuarios SET ${updates.join(', ')}`;
     
     if (password && password.trim()) {
       if (password.length < 8) {
         return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
       }
-      const hash = await bcrypt.hash(password, 12);
-      updates.push(`password_hash=CAST($${updates.length + 1} AS text)`);
-      values.push(String(hash));
+      const paramIndex = setClauses.length + 1;
+      setClauses.push(`password_hash = $${paramIndex}`);
+      params.push(await bcrypt.hash(password, 12));
     }
     
-    values.push(String(req.params.id));
-    query += ` WHERE id=CAST($${values.length} AS uuid) RETURNING id, nombre, email, rol, area_id, activo`;
+    const paramIndex = setClauses.length + 1;
+    setClauses.push(`actualizado_en = NOW()`);
+    const query = `UPDATE usuarios SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING id, nombre, email, rol, area_id, activo`;
+    params.push(req.params.id);
     
-    const { rows } = await db.query(query, values);
+    const { rows } = await db.query(query, params);
     if (!rows[0]) return res.status(404).json({ error: 'Usuario no encontrado' });
     res.json(rows[0]);
   } catch (err) {
