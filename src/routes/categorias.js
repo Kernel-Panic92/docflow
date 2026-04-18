@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const fs = require('fs');
+const path = require('path');
 const db = require('../db');
 const { authMiddleware, requireRol } = require('../middleware/auth');
 
