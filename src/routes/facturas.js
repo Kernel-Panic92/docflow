@@ -68,27 +68,8 @@ function construirFiltroCategorias(usuario) {
 // GET /api/facturas/stats — devuelve solo totales para badges
 router.get('/stats', async (req, res) => {
   try {
-    const filtroCats = construirFiltroCategorias(req.usuario);
-    let where = '1=1';
-    const params = [];
-    
-    if (filtroCats === null) {
-      // Admin ve todo
-    } else if (filtroCats.length === 0) {
-      return res.json({ total: 0, pendientes_urgentes: 0 });
-    } else if (filtroCats === 'AREA') {
-      where = `f.categoria_id IN (SELECT ca.categoria_id FROM categoria_area ca WHERE ca.area_id = $${params.length + 1})`;
-      params.push(req.usuario.area_id);
-    } else {
-      where = `f.categoria_id = ANY($${params.length + 1}::int[])`;
-      params.push(filtroCats);
-    }
-    
-    // Total facturas
-    const totalRes = await db.query(
-      `SELECT COUNT(*) as total FROM facturas f WHERE ${where}`,
-      params
-    );
+    // Total facturas - simple query
+    const totalRes = await db.query('SELECT COUNT(*) as total FROM facturas');
     
     // Pendientes urgentes (próximos 3 días o vencidos)
     const tresDias = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
