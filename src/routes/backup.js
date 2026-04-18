@@ -156,10 +156,36 @@ router.get('/', soloAdmin, async (req, res) => {
     
     res.on('close', () => {
       backupProgress = { total: 0, current: 0, message: '', stage: '' };
+      try { 
+        const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
+        if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile); 
+      } catch(e) {}
     });
     
-    const buffer = zip.toBuffer();
-    res.end(buffer);
+    // Write directly to response
+    const tempFile = path.join(BACKUP_DIR, `temp_${timestamp}.zip`);
+    
+    // Ensure backup dir exists
+    if (!fs.existsSync(BACKUP_DIR)) {
+      fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    }
+    
+    zip.writeZip(tempFile);
+    
+    const readStream = fs.createReadStream(tempFile);
+    
+    readStream.on('end', () => {
+      try { fs.unlinkSync(tempFile); } catch(e) {}
+    });
+    
+    readStream.on('error', (err) => {
+      console.error('[Backup] Stream error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error enviando backup' });
+      }
+    });
+    
+    readStream.pipe(res);
   } catch (err) {
     clearTimeout(timeout);
     console.error('[Backup] Error:', err);
