@@ -16,14 +16,21 @@ warn() { echo -e "${AMARILLO}  ⚠ $1${RESET}"; }
 err()  { echo -e "${ROJO}  ✗ $1${RESET}"; exit 1; }
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
-VERSION="1.0.0"
 
 echo ""
 echo -e "${AZUL}══════════════════════════════════════════════${RESET}"
-echo -e "${AZUL}   Vitamar Docs — Instalador v${VERSION}${RESET}"
+echo -e "${AZUL}   Vitamar Docs — Instalador v1.0.0${RESET}"
 echo -e "${AZUL}   Sistema de Gestión Documental${RESET}"
 echo -e "${AZUL}══════════════════════════════════════════════${RESET}"
 echo ""
+
+# Verificar que es root
+if [[ "$EUID" -ne 0 ]]; then
+  echo -e "${AMARILLO}  ⚠ Este instalador requiere permisos de root.${RESET}"
+  echo -e "${AMARILLO}  Por favor ejecute con: sudo ./install.sh${RESET}"
+  echo ""
+  exit 1
+fi
 
 [[ "$OSTYPE" != "linux-gnu"* ]] && err "Este instalador es para Linux (Ubuntu/Debian)."
 
@@ -70,6 +77,14 @@ if ! command -v psql &>/dev/null; then
   warn "PostgreSQL no encontrado. Instalando..."
   sudo apt-get update -qq
   sudo apt-get install -y postgresql postgresql-contrib
+fi
+
+# Verificar si es instalación nueva que necesita sudo
+if [[ "$EUID" -ne 0 ]]; then
+  # No es root - aviso de que puede necesitar sudo
+  if ! command -v sudo &>/dev/null; then
+    err "Este instalador requiere permisos de root. Ejecute con: sudo ./install.sh"
+  fi
 fi
 
 if ! sudo systemctl is-active --quiet postgresql 2>/dev/null; then
