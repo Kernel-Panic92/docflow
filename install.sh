@@ -70,9 +70,45 @@ if ! command -v psql &>/dev/null; then
   warn "PostgreSQL no encontrado. Instalando..."
   sudo apt-get update -qq
   sudo apt-get install -y postgresql postgresql-contrib
+fi
+
+if ! sudo systemctl is-active --quiet postgresql 2>/dev/null; then
+  warn "Iniciando PostgreSQL..."
   sudo systemctl enable postgresql
   sudo systemctl start postgresql
+  sleep 3
 fi
+
+# Configurar PostgreSQL para aceptar conexiones por password
+info "Configurando PostgreSQL..."
+PG_CONF="/etc/postgresql/16/main/pg_hba.conf"
+if [[ -f "$PG_CONF" ]]; then
+  # Cambiar autenticación a md5 para conexiones locales
+  if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_CONF"; then
+    sudo sed -i 's/host.*all.*all.*127.0.0.1\/32.*peer/host all all 127.0.0.1\/32 md5/g' "$PG_CONF"
+    sudo sed -i 's/host.*all.*all.*::1\/128.*peer/host all ::1\/128 md5/g' "$PG_CONF"
+    sudo sed -i 's/local.*all.*all.*peer/local all all trust/g' "$PG_CONF"
+    sudo systemctl reload postgresql 2>/dev/null || true
+    ok "PostgreSQL configurado para autenticación por password"
+  fi
+fi
+
+# Verificar que PostgreSQL esté corriendo
+
+# Verificar que PostgreSQL esté corriendo
+for i in 1 2 3 4 5; do
+  if sudo systemctl is-active --quiet postgresql 2>/dev/null; then
+    ok "PostgreSQL corriendo"
+    break
+  fi
+  warn "Esperando a PostgreSQL... ($i)"
+  sleep 2
+done
+
+if ! sudo systemctl is-active --quiet postgresql 2>/dev/null; then
+  err "PostgreSQL no está corriendo. Verifica con: sudo systemctl status postgresql"
+fi
+
 PG_VER=$(psql --version | awk '{print $3}')
 ok "PostgreSQL $PG_VER"
 
@@ -111,23 +147,47 @@ read -s -p "  Contraseña de PostgreSQL: " DB_PASSWORD
 echo ""
 [[ -z "$DB_PASSWORD" ]] && err "La contraseña de PostgreSQL es requerida."
 
-# Verificar conexión
+# Verificar conexión - primero intentar sin password (trust), luego con password
 info "Verificando conexión a PostgreSQL..."
-PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c '\q' 2>/dev/null \
-  || err "No se pudo conectar a PostgreSQL. Verifica host, usuario y contraseña."
-ok "Conexión a PostgreSQL exitosa"
-
-# Crear base de datos si no existe
-info "Verificando base de datos '$DB_NAME'..."
-DB_EXISTS=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" \
-  -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || echo "")
-if [[ "$DB_EXISTS" != "1" ]]; then
-  warn "Base de datos '$DB_NAME' no existe. Creando..."
-  PGPASSWORD="$DB_PASSWORD" createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" \
-    || err "No se pudo crear la base de datos '$DB_NAME'."
-  ok "Base de datos '$DB_NAME' creada"
+if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -c '\q' 2>/dev/null; then
+  ok "Conexión a PostgreSQL exitosa (con contraseña)"
 else
-  ok "Base de datos '$DB_NAME' ya existe"
+  # Probar con el usuario postgres sin contraseña (para installs nuevos)
+  warn "Intentar con usuario postgres..."
+  if sudo -u postgres psql -c '\q' 2>/dev/null; then
+    # Establecer password para el usuario
+    sudo -u postgres psql -c "ALTER USER $DB_USER WITH PASSWORD '$DB_PASSWORD';" 2>/dev/null || true
+    ok "Conexión configurada"
+  else
+    err "No se pudo conectar a PostgreSQL. Verifica host, usuario y contraseña."
+  fi
+fi
+
+# Crear base de datos si no existe (usar método que funcione)
+info "Verificando base de datos '$DB_NAME'..."
+if [[ "$DB_HOST" == "localhost" || "$DB_HOST" == "127.0.0.1" ]]; then
+  # Conexión local - usar sudo
+  if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    ok "Base de datos '$DB_NAME' ya existe"
+  else
+    warn "Base de datos '$DB_NAME' no existe. Creando..."
+    sudo -u postgres createdb "$DB_NAME" 2>/dev/null || \
+      PGPASSWORD="$DB_PASSWORD" createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" 2>/dev/null || \
+      err "No se pudo crear la base de datos '$DB_NAME'."
+    ok "Base de datos '$DB_NAME' creada"
+  fi
+else
+  # Conexión remota
+  DB_EXISTS=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" \
+    -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" 2>/dev/null || echo "")
+  if [[ "$DB_EXISTS" != "1" ]]; then
+    warn "Base de datos '$DB_NAME' no existe. Creando..."
+    PGPASSWORD="$DB_PASSWORD" createdb -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$DB_NAME" \
+      || err "No se pudo crear la base de datos '$DB_NAME'."
+    ok "Base de datos '$DB_NAME' creada"
+  else
+    ok "Base de datos '$DB_NAME' ya existe"
+  fi
 fi
 
 # ── 7. FortiMail / IMAP ───────────────────────────────────────
