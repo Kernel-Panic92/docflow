@@ -702,21 +702,18 @@ function togCat(id){catExp=catExp===id?null:id;renderClist()}
 async function mCat(id){
   let cat=null;
   if(id)cat=S.cats.find(c=>c.id===id)||await api('GET',`/categorias/${id}`);
-  const form=cat?{nombre:cat.nombre,desc:cat.descripcion||'',color:cat.color||'#3B82F6',pasos:[...(cat.pasos||[])],area_ids:(cat.areas||[]).map(a=>a.id)}:{nombre:'',desc:'',color:'#3B82F6',pasos:['recepcion','revision','aprobacion','causacion'],area_ids:[]};
+  const form=cat?{nombre:cat.nombre,desc:cat.descripcion||'',color:cat.color||'#3B82F6',pasos:[...(cat.pasos||[])]}:{nombre:'',desc:'',color:'#3B82F6',pasos:['recepcion','revision','aprobacion','causacion']};
   function rr(){
     const cp=$('cp');if(cp)cp.innerHTML=COLS.map(c=>`<div class="cd${form.color===c?' sel':''}" style="background:${c};outline-color:${c}" onclick="sCo('${c}')"></div>`).join('');
-    const ca=$('ca');if(ca)ca.innerHTML=S.areas.map(a=>{const s=form.area_ids.includes(a.id);return`<div class="ci${s?' sel':''}" onclick="tA('${a.id}')"><div class="cb${s?' sel':''}">${s?'✓':''}</div><div style="flex:1"><div style="font-size:13px">${esc(a.nombre)}</div><div style="font-size:11px;color:var(--muted)">${esc(a.jefe_nombre||'')}</div></div></div>`}).join('');
     const cpa=$('cpa');if(cpa)cpa.innerHTML=PASOS.map(p=>{const s=form.pasos.includes(p.id);const f=p.id==='recepcion';return`<div class="ci${s&&!f?' sel':''}" style="${f?'opacity:.5':''}" ${f?'':'onclick="tP(\''+p.id+'\')"'}><div class="cb${s&&!f?' sel':''}">${s&&!f?'✓':''}</div><div style="flex:1"><span style="font-size:13px">${p.l}</span><span style="font-size:11px;color:var(--muted);margin-left:8px">${p.d}</span></div>${f?'<span class="tag">obligatorio</span>':''}</div>`}).join('');
   }
   window.sCo=c=>{form.color=c;rr()};
-  window.tA=aid=>{form.area_ids=form.area_ids.includes(aid)?form.area_ids.filter(x=>x!==aid):[...form.area_ids,aid];rr()};
   window.tP=pid=>{form.pasos=form.pasos.includes(pid)?form.pasos.filter(x=>x!==pid):[...form.pasos,pid];rr()};
-  window.saveCat=async()=>{const n=$('cn').value.trim();if(!n){toast('Nombre requerido','error');return}form.nombre=n;form.desc=$('cd').value.trim();try{if(id)await api('PUT',`/categorias/${id}`,{nombre:form.nombre,descripcion:form.desc,color:form.color,pasos:form.pasos,area_ids:form.area_ids});else await api('POST','/categorias',{nombre:form.nombre,descripcion:form.desc,color:form.color,pasos:form.pasos,area_ids:form.area_ids});closeM();toast('Categoría guardada','success');await rCats()}catch(e){toast(e.message,'error')}};
+  window.saveCat=async()=>{const n=$('cn').value.trim();if(!n){toast('Nombre requerido','error');return}form.nombre=n;form.desc=$('cd').value.trim();try{if(id)await api('PUT',`/categorias/${id}`,{nombre:form.nombre,descripcion:form.desc,color:form.color,pasos:form.pasos});else await api('POST','/categorias',{nombre:form.nombre,descripcion:form.desc,color:form.color,pasos:form.pasos});closeM();toast('Categoría guardada','success');await rCats()}catch(e){toast(e.message,'error')}};
   showM(id?'Editar categoría':'Nueva categoría',`
     <div class="field"><label>NOMBRE *</label><input id="cn" value="${esc(form.nombre)}" placeholder="Ej: Tecnología"/></div>
     <div class="field"><label>DESCRIPCIÓN</label><textarea id="cd" rows="2">${esc(form.desc)}</textarea></div>
     <div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:8px">COLOR</label><div class="cp" id="cp"></div></div>
-    <div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:8px">ÁREAS</label><div id="ca"></div></div>
     <div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:block;margin-bottom:8px">PASOS DEL FLUJO</label><div id="cpa"></div></div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeM()">Cancelar</button><button class="btn btn-primary" onclick="saveCat()">Guardar</button></div>`,560);
   rr();
