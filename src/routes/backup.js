@@ -48,7 +48,7 @@ function getBackupFiles() {
 
 // Helper: genera el ZIP en memoria
 // tipo: 'config' (solo DB) | 'completo' (DB + uploads)
-async function generarZip(tipo = 'completo') {
+async function generarZip(tipo = 'completo', timestamp = Date.now()) {
   const zip = new AdmZip();
 
   const query = async (sql, fallback = []) => {
@@ -114,11 +114,21 @@ async function generarZip(tipo = 'completo') {
   // Solo agregar uploads si es backup completo
   if (tipo === 'completo' && fs.existsSync(UPLOAD_DIR)) {
     const files = fs.readdirSync(UPLOAD_DIR);
-    backupProgress.total = 10 + files.length;
-    backupProgress.current = 9; backupProgress.message = `Procesando archivos (0/${files.length})`; backupProgress.stage = 'uploads';
+    backupProgress.total = 10;
+    backupProgress.current = 9; backupProgress.message = `Comprimiendo archivos (${files.length})`; backupProgress.stage = 'uploads';
     
     if (files.length > 0) {
-      zip.addLocalFolder(UPLOAD_DIR, 'uploads');
+      // Usar tar en paralelo para mejor rendimiento con muchos archivos
+      const uploadsTar = path.join(os.tmpdir(), `uploads_${timestamp}.tar.gz`);
+      try {
+        execSync(`tar -czf "${uploadsTar}" -C "${APP_DIR}" uploads`, { stdio: 'pipe' });
+        zip.addLocalFile(uploadsTar, 'uploads.tar.gz');
+        fs.unlinkSync(uploadsTar); // Limpiar archivo temporal
+      } catch (e) {
+        console.error('[Backup] Error con tar:', e.message);
+        // Fallback al método original
+        zip.addLocalFolder(UPLOAD_DIR, 'uploads');
+      }
     }
   }
   
@@ -159,7 +169,7 @@ router.get('/', soloAdmin, async (req, res) => {
     // Notify start
     backupProgress = { total: 100, current: 10, message: 'Generando...', stage: 'generando' };
     
-    const zip = await generarZip(tipo);
+    const zip = await generarZip(tipo, timestamp);
     
     const fecha = new Date().toISOString().slice(0, 10);
     const filename = tipo === 'config' 
