@@ -11,7 +11,7 @@ const COLS=['#3B82F6','#10B981','#F59E0B','#8B5CF6','#EC4899','#F97316','#06B6D4
 const PASOS=[{id:'recepcion',l:'Recepción',d:'Sistema recibe'},{id:'revision',l:'Revisión',d:'Asigna CC'},{id:'aprobacion',l:'Aprobación',d:'Responsable'},{id:'causacion',l:'Causación',d:'Tesorería'},{id:'pagada',l:'Pagada',d:'Archivada'}];
 const EORD=['recibida','revision','aprobada','causada','pagada'];
 const EM={recibida:{l:'Recibida',c:'#60A5FA'},revision:{l:'En revisión',c:'#FBBF24'},aprobada:{l:'Aprobada',c:'#34D399'},causada:{l:'Causada',c:'#A78BFA'},rechazada:{l:'Rechazada',c:'#F87171'},pagada:{l:'Pagada',c:'#6EE7B7'}};
-const NAV=[{id:'dashboard',l:'Dashboard',i:'📊',s:'p'},{id:'facturas',l:'Facturas',i:'📄',s:'p'},{id:'pendientes',l:'Pendientes',i:'⏳',s:'f',w:true},{id:'aprobaciones',l:'Aprobaciones',i:'✓',s:'f'},{id:'causacion',l:'Causación',i:'📥',s:'f'},{id:'categorias',l:'Categorías',i:'🏷️',s:'c'},{id:'areas',l:'Áreas',i:'🏢',s:'c'},{id:'centros',l:'Centros',i:'🗺️',s:'c'},{id:'configuracion',l:'Configuración',i:'⚙️',s:'c',roles:['admin']},{id:'backup',l:'Backup',i:'💾',s:'c',roles:['admin']},{id:'usuarios',l:'Usuarios',i:'👤',s:'c',roles:['admin']},{id:'audit',l:'Auditoría',i:'🔒',s:'c',roles:['admin','auditor']}];
+const NAV=[{id:'dashboard',l:'Dashboard',i:'📊',s:'p'},{id:'facturas',l:'Facturas',i:'📄',s:'p'},{id:'pendientes',l:'Pendientes',i:'⏳',s:'f',w:true},{id:'aprobaciones',l:'Aprobaciones',i:'✓',s:'f'},{id:'causacion',l:'Causación',i:'📥',s:'f'},{id:'categorias',l:'Categorías',i:'🏷️',s:'c'},{id:'centros',l:'Centros',i:'🗺️',s:'c'},{id:'configuracion',l:'Configuración',i:'⚙️',s:'c',roles:['admin']},{id:'backup',l:'Backup',i:'💾',s:'c',roles:['admin']},{id:'usuarios',l:'Usuarios',i:'👤',s:'c',roles:['admin']},{id:'audit',l:'Auditoría',i:'🔒',s:'c',roles:['admin','auditor']}];
 const SECS=[{id:'p',l:'Principal'},{id:'f',l:'Flujo'},{id:'c',l:'Config'}];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ function goNav(v){closeSidebar();goTo(v)}
 function setNav(id){
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const e=$(`nv-${id}`);if(e)e.classList.add('active');
-  const T={'dashboard':'Dashboard','facturas':'Facturas','pendientes':'Pendientes','aprobaciones':'Aprobaciones','causacion':'Causación','categorias':'Categorías','areas':'Áreas','usuarios':'Usuarios','backup':'Backup'};
+  const T={'dashboard':'Dashboard','facturas':'Facturas','pendientes':'Pendientes','aprobaciones':'Aprobaciones','causacion':'Causación','categorias':'Categorías','usuarios':'Usuarios','backup':'Backup'};
   $('content').parentElement.querySelector('.page-title')?.remove();
   $('content').parentElement.querySelector('.page-sub')?.remove();
 }
@@ -202,7 +202,6 @@ async function goTo(v){
     else if(v==='aprobaciones')await rAprob();
     else if(v==='causacion')await rCaus();
     else if(v==='categorias')await rCats();
-    else if(v==='areas')await rAreas();
     else if(v==='centros')await rCentros();
     else if(v==='usuarios')await rUsers();
     else if(v==='backup')await rBackup();
@@ -388,8 +387,8 @@ async function rFacturas(filtro){
     
     <div class="tbl">
       <div class="tbl-head"><div class="tbl-title">${all.length} factura(s)</div></div>
-      <table><thead><tr><th># Factura</th><th>Centro</th><th>Proveedor</th><th>Valor</th><th>Estado</th><th>Recibida</th><th></th></tr></thead>
-      <tbody>${all.length?all.map(f=>`<tr onclick="abrirF('${f.id}')"><td class="mono" data-label="Factura">${esc(f.numero_factura)}</td><td data-label="Centro" style="font-size:12px;color:var(--muted)">${esc(f.centro_operacion_nombre||'—')}</td><td data-label="Proveedor" style="font-weight:500">${esc(f.proveedor_nombre||f.nombre_emisor||'—')}</td><td data-label="Valor" style="font-weight:500">${fmt(f.valor_total||f.valor||0)}</td><td data-label="Estado">${bdg(f.estado)}</td><td data-label="Recibida" style="color:var(--muted);font-size:12px">${f.fecha_factura?fdate(f.fecha_factura):fdatetime(f.recibida_en)}</td><td>${f.archivo_pdf?`<span onclick="event.stopPropagation();verPdf('${f.id}')" title="Ver PDF" style="color:var(--accent);font-size:16px;cursor:pointer">📄</span>`:''}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">Sin facturas</td></tr>'}</tbody></table>
+      <table><thead><tr><th># Factura</th><th>Centro</th><th>Proveedor</th><th>Categoría</th><th>Valor</th><th>Estado</th><th>Recibida</th><th></th></tr></thead>
+      <tbody>${all.length?all.map(f=>`<tr onclick="abrirF('${f.id}')"><td class="mono" data-label="Factura">${esc(f.numero_factura)}</td><td data-label="Centro" style="font-size:12px;color:var(--muted)">${esc(f.centro_operacion_nombre||'—')}</td><td data-label="Proveedor" style="font-weight:500">${esc(f.proveedor_nombre||f.nombre_emisor||'—')}</td><td data-label="Categoría">${ctag(f.categoria_color,f.categoria_nombre)}</td><td data-label="Valor" style="font-weight:500">${fmt(f.valor_total||f.valor||0)}</td><td data-label="Estado">${bdg(f.estado)}</td><td data-label="Recibida" style="color:var(--muted);font-size:12px">${f.fecha_factura?fdate(f.fecha_factura):fdatetime(f.recibida_en)}</td><td>${f.archivo_pdf?`<span onclick="event.stopPropagation();verPdf('${f.id}')" title="Ver PDF" style="color:var(--accent);font-size:16px;cursor:pointer">📄</span>`:''}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">Sin facturas</td></tr>'}</tbody></table>
     </div>`;
   refreshBadges();
 }
