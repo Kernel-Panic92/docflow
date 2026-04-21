@@ -71,7 +71,7 @@ router.get('/', async (req, res) => {
         SELECT COALESCE(SUM(valor_total), 0)::numeric AS valor
         FROM facturas
         WHERE estado IN ('causada','pagada')
-          AND DATE_TRUNC('month', actualizada_en) = DATE_TRUNC('month', NOW())
+          AND DATE_TRUNC('month', creado_en) = DATE_TRUNC('month', NOW())
       `),
     ]);
 
