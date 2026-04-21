@@ -8,6 +8,9 @@ Fecha: 2026-04-18
 - ✅ RCE en test SMB: Sanitización de host/user/pass, encodeURIComponent en URL
 - ✅ Validación de parámetros requeridos en backups-auto/test
 
+### Bugs conocidos
+- ⚠️ Backup completo puede fallar con error "value out of range (78095)" - en investigación
+
 ---
 
 ## v1.0.1 - Release estable
