@@ -1,5 +1,19 @@
 # Vitamar Docs - Changelog
 
+## v1.1.4 - Optimización de backups
+Fecha: 2026-04-20
+
+### Mejoras implementadas
+- ✅ Backup completo usa tar.gz para uploads (mucho más rápido con 80k+ archivos)
+- ✅ Verbose paso a paso en el modal de backup
+- ✅ Botón cancelar funciona correctamente
+
+### Bugs conocidos
+- ⚠️ Backup completo puede fallar con error "value out of range (78095)" - en investigación
+- ⚠️ Instalar tiene conflictos de merge al actualizar desde GUI
+
+---
+
 ## v1.1.3 - Corrección de vulnerabilidades de seguridad
 Fecha: 2026-04-18
 
@@ -7,9 +21,6 @@ Fecha: 2026-04-18
 - ✅ RCE en actualizador: Validación de rama git con regex (solo permite main, master, release)
 - ✅ RCE en test SMB: Sanitización de host/user/pass, encodeURIComponent en URL
 - ✅ Validación de parámetros requeridos en backups-auto/test
-
-### Bugs conocidos
-- ⚠️ Backup completo puede fallar con error "value out of range (78095)" - en investigación
 
 ---
 
