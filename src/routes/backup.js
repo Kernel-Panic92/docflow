@@ -108,6 +108,7 @@ async function generarZip(tipo = 'completo', timestamp = Date.now()) {
   console.log('[Backup] Generando backup:', { tipo, config: cfg.length, usuarios: usuarios.length, facturas: facturas.length });
 
   backupProgress.current = 8; backupProgress.message = 'Creando ZIP'; backupProgress.stage = 'zip';
+  console.log('[Backup] 1/4: creando JSON...');
 
   zip.addFile('backup.json', Buffer.from(JSON.stringify(data, null, 2), 'utf8'));
 
@@ -115,12 +116,14 @@ async function generarZip(tipo = 'completo', timestamp = Date.now()) {
   if (tipo === 'completo' && fs.existsSync(UPLOAD_DIR)) {
     const files = fs.readdirSync(UPLOAD_DIR);
     backupProgress.total = 10;
-    backupProgress.current = 9; backupProgress.message = `Comprimiendo archivos (${files.length})`; backupProgress.stage = 'uploads';
+    backupProgress.current = 9; backupProgress.message = `Comprimiendo ${files.length} archivos...`; backupProgress.stage = 'uploads';
+    console.log('[Backup] 2/4: comprimiendo ' + files.length + ' archivos (tar.gz)...');
     
     if (files.length > 0) {
       // Usar tar en paralelo para mejor rendimiento con muchos archivos
       const uploadsTar = path.join(os.tmpdir(), `uploads_${timestamp}.tar.gz`);
       try {
+        console.log('[Backup] 3/4: ejecutando tar -czf...');
         execSync(`tar -czf "${uploadsTar}" -C "${APP_DIR}" uploads`, { stdio: 'pipe' });
         zip.addLocalFile(uploadsTar, 'uploads.tar.gz');
         fs.unlinkSync(uploadsTar); // Limpiar archivo temporal
@@ -133,6 +136,7 @@ async function generarZip(tipo = 'completo', timestamp = Date.now()) {
   }
   
   backupProgress.current = backupProgress.total; backupProgress.message = 'Completado'; backupProgress.stage = 'done';
+  console.log('[Backup] 4/4: comprimiendo en ZIP final...');
 
   return zip;
 }
