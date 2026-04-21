@@ -302,7 +302,7 @@ function stopSyncPoll(){
 
 // ─── FACTURAS ────────────────────────────────────────────────────────────────
 let fFiltro='todas';
-let fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',buscar:''};
+let fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',buscar:'',categoria_id:''};
 
 async function rFacturas(filtro){
   if(filtro!==undefined)fFiltro=filtro;
@@ -317,6 +317,7 @@ async function rFacturas(filtro){
   if(fBusqueda.valor_min)params.set('valor_min',fBusqueda.valor_min);
   if(fBusqueda.valor_max)params.set('valor_max',fBusqueda.valor_max);
   if(fBusqueda.proveedor_id)params.set('proveedor_id',fBusqueda.proveedor_id);
+  if(fBusqueda.categoria_id)params.set('categoria_id',fBusqueda.categoria_id);
   if(fBusqueda.buscar)params.set('buscar',fBusqueda.buscar);
   params.set('limit','100');
   
@@ -326,11 +327,13 @@ async function rFacturas(filtro){
   ['recibida','revision','aprobada','causada','rechazada'].forEach(e=>cnts[e]=all.filter(x=>x.estado===e).length);
   const fbs=[{id:'todas',l:'Todas'},{id:'recibida',l:'Recibidas'},{id:'revision',l:'En revisión'},{id:'aprobada',l:'Aprobadas'},{id:'causada',l:'Causadas'},{id:'rechazada',l:'Rechazadas'}].map(fb=>`<button class="fb${fFiltro===fb.id?' active':''}" onclick="rFacturas('${fb.id}')">${fb.l}<span class="fc">${cnts[fb.id]||0}</span></button>`).join('');
   
-  // Cargar proveedores para el filtro
+  // Cargar proveedores y categorías para el filtro
   if(!S.proveedores)S.proveedores=await api('GET','/proveedores');
+  if(!S.cats?.length)S.cats=await api('GET','/categorias');
   const provOpts=S.proveedores.map(p=>`<option value="${p.id}" ${fBusqueda.proveedor_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('');
+  const catOpts=S.cats.map(c=>`<option value="${c.id}" ${fBusqueda.categoria_id===c.id?'selected':''}>${esc(c.nombre)}</option>`).join('');
   
-  const hayFiltros=fBusqueda.numero||fBusqueda.nit||fBusqueda.fecha_desde||fBusqueda.fecha_hasta||fBusqueda.valor_min||fBusqueda.valor_max||fBusqueda.proveedor_id||fBusqueda.buscar;
+  const hayFiltros=fBusqueda.numero||fBusqueda.nit||fBusqueda.fecha_desde||fBusqueda.fecha_hasta||fBusqueda.valor_min||fBusqueda.valor_max||fBusqueda.proveedor_id||fBusqueda.categoria_id||fBusqueda.buscar;
   
   $('content').innerHTML=`
     <div class="page-header"><div><div class="page-title">Facturas</div><div class="page-sub">${f.total||0} factura(s) encontrada(s)</div></div><button class="btn btn-primary" onclick="mNuevaF()">+ Nueva factura</button></div>
@@ -358,6 +361,10 @@ async function rFacturas(filtro){
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:10px;text-transform:uppercase;color:var(--muted)">Proveedor</label>
           <select id="ff-proveedor"><option value="">Todos</option>${provOpts}</select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:10px;text-transform:uppercase;color:var(--muted)">Categoría</label>
+          <select id="ff-categoria"><option value="">Todas</option>${catOpts}</select>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:10px;text-transform:uppercase;color:var(--muted)">Desde fecha</label>
@@ -396,13 +403,14 @@ function aplicarFiltrosF(){
     valor_min:$('ff-vmin')?.value||'',
     valor_max:$('ff-vmax')?.value||'',
     proveedor_id:$('ff-proveedor')?.value||'',
+    categoria_id:$('ff-categoria')?.value||'',
     buscar:$('ff-buscar')?.value||''
   };
   rFacturas();
 }
 
 function limpiarFiltrosF(){
-  fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',buscar:''};
+  fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',categoria_id:'',buscar:''};
   rFacturas();
 }
 
