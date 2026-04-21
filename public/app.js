@@ -1047,7 +1047,14 @@ async function descargarBackup(tipo='completo'){
   let cancelled=false;
   let pollInterval=null;
   
-  window.cancelarBackupGen=function(){cancelled=true;if(pollInterval)clearInterval(pollInterval);closeM();btn.disabled=false;btn.textContent=label};
+  window.cancelarBackupGen=async function(){
+      cancelled=true;
+      if(pollInterval)clearInterval(pollInterval);
+      try{await fetch('/api/backup/cancelar',{method:'POST',headers:{Authorization:'Bearer '+token}})}catch(_){}
+      closeM();
+      btn.disabled=false;
+      btn.textContent=label;
+    };
   
   try{
     // Paso 1: Generar backup

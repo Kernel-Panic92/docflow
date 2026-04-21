@@ -25,6 +25,7 @@ console.log('[Backup] Directorio de backups:', BACKUP_DIR);
 
 // Progress para SSE
 let backupProgress = { total: 0, current: 0, message: '', stage: '' };
+let backupCancelled = false;
 
 function ensureBackupDir() {
   if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -49,6 +50,10 @@ function getBackupFiles() {
 // Helper: genera el ZIP en memoria
 // tipo: 'config' (solo DB) | 'completo' (DB + uploads)
 async function generarZip(tipo = 'completo', timestamp = Date.now()) {
+  if (backupCancelled) {
+    backupProgress = { total: 0, current: 0, message: '', stage: '' };
+    throw new Error('Backup cancelado por el usuario');
+  }
   const zip = new AdmZip();
 
   const query = async (sql, fallback = []) => {
@@ -205,7 +210,14 @@ router.get('/', soloAdmin, async (req, res) => {
 
 // GET /api/backup/progreso — polling para progreso
 router.get('/progreso', soloAdmin, (req, res) => {
-  res.json(backupProgress);
+  res.json({ ...backupProgress, cancelled: backupCancelled });
+});
+
+// POST /api/backup/cancelar — cancelar backup en progreso
+router.post('/cancelar', soloAdmin, (req, res) => {
+  backupCancelled = true;
+  console.log('[Backup] Cancelado por usuario');
+  res.json({ ok: true, message: 'Backup cancelado' });
 });
 
 // GET /api/backup/lista — lista backups en el servidor
