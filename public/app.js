@@ -493,14 +493,25 @@ async function rAprob(){
 }
 
 // ─── CAUSACIÓN ───────────────────────────────────────────────────────────────
+let causBusqueda='';
 async function rCaus(){
-  const f=await api('GET','/facturas?estado=aprobada&limit=100');const all=f.data||[];
+  causBusqueda=$('caus-buscar')?.value||'';
+  const params=new URLSearchParams();
+  params.set('estado','aprobada');
+  if(causBusqueda){
+    params.set('buscar',causBusqueda);
+  }
+  const f=await api('GET',`/facturas?${params.toString()}&limit=100`);
+  const all=f.data||[];
   $('content').innerHTML=`
-    <div class="page-header"><div><div class="page-title">Causación</div><div class="page-sub">${all.length} factura(s) listas para causar</div></div></div>
+    <div class="page-header"><div><div class="page-title">Causación</div><div class="page-sub">${all.length} factura(s) por causar</div></div></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+      <input type="text" id="caus-buscar" placeholder="Buscar por # factura o proveedor..." value="${esc(causBusqueda)}" onkeydown="if(event.key==='Enter')rCaus()" style="width:100%">
+    </div>
     <div style="display:grid;gap:12px">${all.length?all.map(f=>`<div class="tbl" style="cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:20px" onclick="abrirF('${f.id}')">
       <div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mono">${esc(f.numero_factura)}</span>${bdg(f.estado)}</div>
       <div style="font-weight:500;margin-bottom:4px">${esc(f.proveedor_nombre||'Desconocido')}</div>
-      <div style="font-size:12px;color:var(--muted)">${f.centro_costos?'CC: '+esc(f.centro_costos):'Sin CC'} · ${esc(f.area_nombre||'—')}</div></div>
+      <div style="font-size:12px;color:var(--muted)">${esc(f.centro_operacion_nombre||'Sin CO')} · ${f.fecha_factura?'Fact: '+fdate(f.fecha_factura):''} ${f.limite_pago?'· Vence: '+fdate(f.limite_pago):''}</div></div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}</div>
     </div>`).join(''):'<div class="empty">No hay facturas por causar ✓</div>'}</div>`;
 }
