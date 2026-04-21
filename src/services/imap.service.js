@@ -340,7 +340,7 @@ async function procesarCorreo(parsed, msgId) {
           valor_total, valor_iva, valor,
           fecha_factura, nit_emisor, nombre_emisor, cufe,
           orden_compra, referencia
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'recibida',$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
         RETURNING id, numero_factura`,
       [
         numeroFactura,
@@ -352,6 +352,7 @@ async function procesarCorreo(parsed, msgId) {
         asunto.substring(0, 499),
         limiteDian,
         limitePago || null,
+        'recibida',
         valorTotal,
         iva,
         valorBruto,

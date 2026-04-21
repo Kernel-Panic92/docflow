@@ -51,6 +51,11 @@ function construirFiltroCategorias(usuario) {
     return null; // Sin filtro
   }
   
+  // Comprador ve todas las facturas (puede buscar por proveedor y aprobar)
+  if (rol === 'comprador') {
+    return null; // Sin filtro
+  }
+  
   // Si tiene categorías explícitamente asignadas
   if (categorias && Array.isArray(categorias) && categorias.length > 0) {
     return categorias;
@@ -167,7 +172,7 @@ router.get('/', async (req, res) => {
     // Usuario sin acceso a categorías - no ve facturas
     return res.json({ data: [], total: 0, page: 1, limit: parseInt(limit) });
   } else if (filtroCats === 'AREA') {
-    // Filtrar por categorías del área del usuario
+    // Filtrar por categorías del área
     where.push(`f.categoria_id IN (
       SELECT ca.categoria_id FROM categoria_area ca 
       WHERE ca.area_id = $${params.length + 1}
