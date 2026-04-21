@@ -166,6 +166,7 @@ function showApp(){
   const rolClass={'admin':'role-admin','contador':'role-contador','tesorero':'role-tesorero','comprador':'role-comprador','auditor':'role-auditor'};
   $('u-badge').className=`role-badge ${rolClass[S.usuario?.rol]||'role-comprador'}`;
   $('u-badge').textContent=S.usuario?.rol||'';
+  initFiltros();
   
   // Cargar versión
   fetch('/api/version').then(r=>r.json()).then(d=>{
@@ -320,7 +321,8 @@ function stopSyncPoll(){
 
 // ─── FACTURAS ────────────────────────────────────────────────────────────────
 let fFiltro='todas';
-let fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',buscar:'',categoria_id:''};
+let fBusqueda=JSON.parse(localStorage.getItem('vd_filtros')||'{}');
+function initFiltros(){if(JSON.parse(localStorage.getItem('vd_filtros')||'{}').categoria_id)fBusqueda=JSON.parse(localStorage.getItem('vd_filtros'))}
 
 async function rFacturas(filtro){
   if(filtro!==undefined)fFiltro=filtro;
@@ -424,11 +426,15 @@ function aplicarFiltrosF(){
     categoria_id:$('ff-categoria')?.value||'',
     buscar:$('ff-buscar')?.value||''
   };
+  guardarFiltros();
   rFacturas();
 }
+function guardarFiltros(){
+  localStorage.setItem('vd_filtros',JSON.stringify(fBusqueda))}
 
 function limpiarFiltrosF(){
   fBusqueda={numero:'',nit:'',fecha_desde:'',fecha_hasta:'',valor_min:'',valor_max:'',proveedor_id:'',categoria_id:'',buscar:''};
+  guardarFiltros();
   rFacturas();
 }
 
