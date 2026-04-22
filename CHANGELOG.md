@@ -1,5 +1,26 @@
 # Vitamar Docs - Changelog
 
+## v1.1.6 - Mejoras de usabilidad y limpieza de código
+Fecha: 2026-04-23
+
+### Nuevas funcionalidades
+- ✅ Módulo Pendientes con filtros y búsqueda
+- ✅ Filtros en Pendientes: Todas, Sin aprobar, Sin pagar, Por vencer
+- ✅ Buscador por número de factura o proveedor
+- ✅ Badge de estado visible en cada factura (Recibida, En revisión, Aprobada, Causada, etc.)
+- ✅ Colores diferenciados por tipo: amarillo (sin aprobar), morado (sin pagar), rojo (por vencer)
+
+### Mejoras técnicas
+- ✅ Fix updater: usa `reset --hard` para evitar conflictos de merge al actualizar desde UI
+- ✅ CRON jobs deshabilitados (pendiente integración API DIAN)
+- ✅ Arreglado error de fechas undefined en filtros de facturas
+
+### Limpieza de código
+- ✅ Eliminado módulo Aprobaciones (redundante con Pendientes)
+- ✅ Creada release v1.1.5 para recuperación
+
+---
+
 ## v1.1.5 - Panel de configuración completo + Auditoría
 Fecha: 2026-04-22
 
@@ -54,10 +75,13 @@ Fecha: 2026-04-18
 ### Features implementados
 - ✅ Gestión de facturas electrónicas (DIAN)
 - ✅ Workflow de aprobación (Recepción → Revisión → Aprobación → Causación → Pagada)
-- ✅ Múltiples módulos: Dashboard, Facturas, Pendientes, Aprobaciones, Causación
+- ✅ Módulos: Dashboard, Facturas, Pendientes, Causación
 - ✅ Configuración: Áreas, Centros, Categorías
 - ✅ Gestión de usuarios con roles (admin, contador, tesorero, comprador, auditor)
 - ✅ Backup completo (DB + uploads) ~1GB
+- ✅ Sincronización de correo IMAP para recibir facturas automáticamente
+- ✅ Sistema de notificaciones
+- ✅ Seguridad con JWT
 - ✅ Sincronización de correo IMAP para recibir facturas automáticamente
 - ✅ Sistema de notificaciones
 - ✅ Seguridad con JWT
