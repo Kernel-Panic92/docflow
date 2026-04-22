@@ -490,13 +490,13 @@ async function rPend(){
       const dias=Math.ceil((new Date(f.limite_pago)-new Date())/(1000*60*60*24));
       if(dias>=0&&dias<=7){colorBarra='var(--danger)';badgeExtra='<span class="badge" style="background:rgba(248,113,113,.2);color:#f7614f">⏰ Vence pronto</span>';}
     }
-    const badge=f.prioridad==='critico'?'<span class="badge" style="background:rgba(248,113,113,.2);color:#f7614f">🔴 Crítico</span>':
-                 f.prioridad==='alerta'?'<span class="badge" style="background:rgba(251,191,36,.2);color:#f7d44f">🟡 Alerta</span>':bdg(f.estado);
+    const priorBadge=f.prioridad==='critico'?'<span class="badge" style="background:rgba(248,113,113,.2);color:#f7614f">🔴 Crítico</span>':
+                      f.prioridad==='alerta'?'<span class="badge" style="background:rgba(251,191,36,.2);color:#f7d44f">🟡 Alerta</span>':'';
     const tipoBadge=f.tipo_urgencia==='dian'?'<span class="badge b-revision">DIAN</span>':
                     f.tipo_urgencia==='soporte'?'<span class="badge b-causada">Sin soporte</span>':
                     f.tipo_urgencia==='revision'?'<span class="badge b-recibida">Sin revisar</span>':'';
     return `<div class="tbl" style="cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:20px;border-left:4px solid ${colorBarra}" onclick="abrirF('${f.id}')">
-      <div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mono">${esc(f.numero_factura)}</span>${badge}${badgeExtra}${tipoBadge}</div>
+      <div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mono">${esc(f.numero_factura)}</span>${bdg(f.estado)}${priorBadge}${badgeExtra}${tipoBadge}</div>
       <div style="font-weight:500;margin-bottom:4px">${esc(f.proveedor_nombre||'Desconocido')}</div>
       <div style="font-size:12px;color:var(--muted)">${esc(f.area_nombre||'Sin área')} · Recibida: ${fdatetime(f.recibida_en)}</div></div>
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}${f.limite_pago?`<div style="font-size:12px;color:${new Date(f.limite_pago)<new Date()?'var(--danger)':f.prioridad==='alerta'?'var(--warning)':'var(--muted)'}">Vence: ${fdate(f.limite_pago)}</div>`:f.limite_dian?`<div style="font-size:12px;color:${f.prioridad==='critico'?'var(--danger)':'var(--muted)'}">DIAN: ${fdate(f.limite_dian)}</div>`:''}</div>
