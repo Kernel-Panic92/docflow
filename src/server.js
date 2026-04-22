@@ -59,12 +59,20 @@ app.get('*', (req, res) => {
 });
 
 // ─── Error handler global ─────────────────────────────────────────────────────
+// Maneja todos los errores no capturados - oculta detalles en producción
 app.use((err, req, res, next) => {
-  console.error('[Error]', err.message);
+  const isProd = process.env.NODE_ENV === 'production';
+  console.error('[Error]', isProd ? err.message : err.stack);
+  
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ error: `Archivo demasiado grande (máximo ${process.env.MAX_FILE_MB || 10}MB)` });
   }
-  res.status(500).json({ error: process.env.NODE_ENV === 'production' ? 'Error interno' : err.message });
+  
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+  
+  res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message });
 });
 
 // ─── Arranque ─────────────────────────────────────────────────────────────────
