@@ -61,7 +61,7 @@ function construirFiltroCategorias(usuario) {
 }
 
 // GET /api/facturas/badge-stats
-router.get('/badge-stats', async (req, res) => {
+router.get('/badge-stats', requireRol('admin','contador','tesorero','comprador','auditor'), async (req, res) => {
   try {
     const totalRes = await db.query('SELECT COUNT(*) as total FROM facturas');
     
@@ -85,7 +85,7 @@ router.get('/badge-stats', async (req, res) => {
 });
 
 // GET /api/facturas/pendientes
-router.get('/pendientes', async (req, res) => {
+router.get('/pendientes', requireRol('admin','contador','tesorero','comprador','auditor'), async (req, res) => {
   try {
     const hoy = new Date();
     const en3dias = new Date(hoy.getTime() + 3 * 24 * 60 * 60 * 1000);
@@ -140,7 +140,7 @@ router.get('/pendientes', async (req, res) => {
 });
 
 // ─── GET /api/facturas ────────────────────────────────────────────────────────
-router.get('/', async (req, res) => {
+router.get('/', requireRol('admin','contador','tesorero','comprador','auditor'), async (req, res) => {
   const { 
     estado, area_id, categoria_id, proveedor_id,
     numero, nit_emisor, fecha_desde, fecha_hasta,
@@ -257,7 +257,7 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/facturas/:id ────────────────────────────────────────────────────
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireRol('admin','contador','tesorero','comprador','auditor'), async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT f.*,
@@ -294,7 +294,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ─── POST /api/facturas ───────────────────────────────────────────────────────
-router.post('/', upload.fields([{ name:'pdf', maxCount:1 }, { name:'xml', maxCount:1 }]), async (req, res) => {
+router.post('/', requireRol('admin','contador','comprador'), upload.fields([{ name:'pdf', maxCount:1 }, { name:'xml', maxCount:1 }]), async (req, res) => {
   const {
     numero_factura, proveedor_id, categoria_id, area_responsable_id,
     valor, valor_iva, valor_total, limite_pago, observaciones,
@@ -349,7 +349,7 @@ router.post('/', upload.fields([{ name:'pdf', maxCount:1 }, { name:'xml', maxCou
 });
 
 // PATCH /api/facturas/:id/categoria - cambiar categoría y guardar preferencia
-router.patch('/:id/categoria', async (req, res) => {
+router.patch('/:id/categoria', requireRol('admin','contador'), async (req, res) => {
   const { categoria_id } = req.body;
   const client = await db.getClient();
   try {
@@ -402,7 +402,7 @@ router.patch('/:id/categoria', async (req, res) => {
 });
 
 // ─── PATCH /api/facturas/:id/asignar ─────────────────────────────────────────
-router.patch('/:id/asignar', async (req, res) => {
+router.patch('/:id/asignar', requireRol('admin','contador'), async (req, res) => {
   const { area_responsable_id, asignado_a_id } = req.body;
   const client = await db.getClient();
   try {
@@ -428,7 +428,7 @@ router.patch('/:id/asignar', async (req, res) => {
 });
 
 // ─── PATCH /api/facturas/:id/centro-costos ────────────────────────────────────
-router.patch('/:id/centro-costos', async (req, res) => {
+router.patch('/:id/centro-costos', requireRol('admin','contador'), async (req, res) => {
   const { centro_costos, observaciones } = req.body;
   if (!centro_costos?.trim()) return res.status(400).json({ error: 'Centro de costos requerido' });
 
@@ -455,7 +455,7 @@ router.patch('/:id/centro-costos', async (req, res) => {
 });
 
 // ─── PATCH /api/facturas/:id/aprobar ─────────────────────────────────────────
-router.patch('/:id/aprobar', async (req, res) => {
+router.patch('/:id/aprobar', requireRol('admin','contador'), async (req, res) => {
   const { 
     centro_operacion_id, area_responsable_id, centro_costos, descripcion_gasto, referencia, comentario 
   } = req.body;
@@ -504,7 +504,7 @@ router.patch('/:id/aprobar', async (req, res) => {
 });
 
 // ─── PATCH /api/facturas/:id/rechazar ─────────────────────────────────────────
-router.patch('/:id/rechazar', async (req, res) => {
+router.patch('/:id/rechazar', requireRol('admin','contador'), async (req, res) => {
   const { motivo } = req.body;
   if (!motivo?.trim()) return res.status(400).json({ error: 'Motivo de rechazo requerido' });
 
@@ -618,7 +618,7 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('
 });
 
 // ─── GET /api/facturas/:id/soporte-pago ────────────────────────────────────
-router.get('/:id/soporte-pago', async (req, res) => {
+router.get('/:id/soporte-pago', requireRol('admin','tesorero'), async (req, res) => {
   const { rows } = await db.query(
     'SELECT soporte_pago, soporte_pago_nombre FROM facturas WHERE id=$1',
     [req.params.id]
@@ -636,7 +636,7 @@ router.get('/:id/soporte-pago', async (req, res) => {
 });
 
 // ─── GET /api/facturas/:id/pdf ─────────────────────────────────────────────────
-router.get('/:id/pdf', async (req, res) => {
+router.get('/:id/pdf', requireRol('admin','contador','tesorero','comprador','auditor'), async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

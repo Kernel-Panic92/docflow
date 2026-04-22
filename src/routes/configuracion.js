@@ -110,7 +110,7 @@ router.put('/', requireRol('admin'), async (req, res) => {
 });
 
 // ─── GET /api/configuracion/imap/test ───────────────────────────────────────
-router.get('/imap/test', async (req, res) => {
+router.get('/imap/test', requireRol('admin'), async (req, res) => {
   const { ImapFlow } = require('imapflow');
   
   const host = req.query.host;
@@ -143,7 +143,7 @@ router.get('/imap/test', async (req, res) => {
 });
 
 // ─── GET /api/configuracion/smtp/test ───────────────────────────────────────
-router.get('/smtp/test', async (req, res) => {
+router.get('/smtp/test', requireRol('admin'), async (req, res) => {
   const nodemailer = require('nodemailer');
   
   const host = req.query.host;
