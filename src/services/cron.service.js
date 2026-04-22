@@ -19,9 +19,10 @@ async function verificarEscalaciones() {
 
     // Facturas en revision sin escalación nivel 1 que superaron el límite
     const paraEscalar1 = await client.query(
-      `SELECT f.id, f.numero_factura, f.area_responsable_id, a.jefe_nombre, a.email AS area_email
+      `SELECT f.id, f.numero_factura, f.area_responsable_id, u.nombre AS jefe_nombre, u.email AS jefe_email
        FROM facturas f
        LEFT JOIN areas a ON a.id = f.area_responsable_id
+       LEFT JOIN usuarios u ON u.id = a.jefe_id AND u.activo = TRUE
        WHERE f.estado IN ('recibida','revision')
          AND f.recibida_en < NOW() - INTERVAL '${horasNivel1} hours'
          AND NOT EXISTS (
