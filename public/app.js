@@ -442,6 +442,7 @@ function limpiarFiltrosF(){
 }
 
 let pendBusqueda='';
+let pendFiltro='todas';
 async function rPend(){
   pendBusqueda=$('pend-buscar')?.value||'';
   const [r1,r2,r3]=await Promise.all([
@@ -450,13 +451,18 @@ async function rPend(){
     api('GET','/facturas?estado=causada&limit=100')
   ]);
   let all=[...(r1.data||[]),...(r2.data||[]),...(r3.data||[])];
+  if(pendFiltro!=='todas'){
+    if(pendFiltro==='porAprobar')all=all.filter(x=>['recibida','revision'].includes(x.estado));
+    else if(pendFiltro==='porVencer')all=all.filter(x=>x.limite_pago&&new Date(x.limite_pago)<=new Date(Date.now()+7*24*60*60*1000));
+    else if(pendFiltro==='porPagar')all=all.filter(x=>x.estado==='causada');
+  }
   if(pendBusqueda){
     const b=pendBusqueda.toLowerCase();
     all=all.filter(x=>(x.numero_factura||'').toLowerCase().includes(b)||(x.proveedor_nombre||'').toLowerCase().includes(b));
   }
-  const porAprobar=all.filter(x=>['recibida','revision'].includes(x.estado));
-  const porVencer=all.filter(x=>x.limite_pago&&new Date(x.limite_pago)<=new Date(Date.now()+7*24*60*60*1000)&&!['recibida','revision'].includes(x.estado));
-  const porPagar=all.filter(x=>x.estado==='causada');
+  const porAprobar=pendFiltro==='todas'?all.filter(x=>['recibida','revision'].includes(x.estado)):[];
+  const porVencer=pendFiltro==='todas'?all.filter(x=>x.limite_pago&&new Date(x.limite_pago)<=new Date(Date.now()+7*24*60*60*1000)):[];
+  const porPagar=pendFiltro==='todas'?all.filter(x=>x.estado==='causada'):[];
   
   function renderItem(f,color){
     const vencio=f.limite_pago&&new Date(f.limite_pago)<new Date();
@@ -467,25 +473,15 @@ async function rPend(){
       <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}${f.limite_pago?`<div style="font-size:12px;color:${vencio?'var(--danger)':'var(--muted)'}">Vence: ${fdate(f.limite_pago)}</div>`:''}</div>
     </div>`;
   }
-  
+  const fbts=[{id:'todas',l:'Todas'},{id:'porAprobar',l:'Por aprobar'},{id:'porVencer',l:'x Vencer'},{id:'porPagar',l:'x Pagar'}].map(x=>`<button class="fb${pendFiltro===x.id?' active':''}" onclick="pendFiltro='${x.id}';rPend()">${x.l}</button>`).join('');
   $('content').innerHTML=`
     <div class="page-header"><div><div class="page-title">Pendientes</div><div class="page-sub">${all.length} factura(s)</div></div></div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">${fbts}</div>
       <input type="text" id="pend-buscar" placeholder="Buscar por # factura o proveedor..." value="${esc(pendBusqueda)}" onkeydown="if(event.key==='Enter')rPend()" style="width:100%">
     </div>
-    ${porAprobar.length?`<div style="margin-bottom:20px">
-      <div style="font-size:11px;text-transform:uppercase;color:#f97316;font-weight:600;margin-bottom:10px">🟠 Por aprobar (${porAprobar.length})</div>
-      ${porAprobar.map(f=>renderItem(f,'#f97316')).join('')}
-    </div>`:''}
-    ${porVencer.length?`<div style="margin-bottom:20px">
-      <div style="font-size:11px;text-transform:uppercase;color:var(--danger);font-weight:600;margin-bottom:10px">🔴 Próximas a vencer (${porVencer.length})</div>
-      ${porVencer.map(f=>renderItem(f,'var(--danger)')).join('')}
-    </div>`:''}
-    ${porPagar.length?`<div style="margin-bottom:20px">
-      <div style="font-size:11px;text-transform:uppercase;color:#A78BFA;font-weight:600;margin-bottom:10px">🟣 Por pagar (${porPagar.length})</div>
-      ${porPagar.map(f=>renderItem(f,'#A78BFA')).join('')}
-    </div>`:''}
-    ${all.length===0?'<div class="empty">No hay facturas pendientes ✓</div>':''}
+    ${pendFiltro==='todas'?(porAprobar.length?`<div style="margin-bottom:20px"><div style="font-size:11px;text-transform:uppercase;color:#f97316;font-weight:600;margin-bottom:10px">🟠 Por aprobar (${porAprobar.length})</div>${porAprobar.map(f=>renderItem(f,'#f97316')).join('')}</div>`:'')+(porVencer.length?`<div style="margin-bottom:20px"><div style="font-size:11px;text-transform:uppercase;color:var(--danger);font-weight:600;margin-bottom:10px">🔴 Próximas a vencer (${porVencer.length})</div>${porVencer.map(f=>renderItem(f,'var(--danger)')).join('')}</div>`:'')+(porPagar.length?`<div style="margin-bottom:20px"><div style="font-size:11px;text-transform:uppercase;color:#A78BFA;font-weight:600;margin-bottom:10px">🟣 Por pagar (${porPagar.length})</div>${porPagar.map(f=>renderItem(f,'#A78BFA')).join('')}</div>`:''):all.length?all.map(f=>renderItem(f,'var(--accent)').join(''):'<div class="empty">Sin resultados</div>'}
+    ${all.length===0&&pendFiltro==='todas'?'<div class="empty">No hay facturas pendientes ✓</div>':''}
   `;
 }
 
