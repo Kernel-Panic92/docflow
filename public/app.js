@@ -15,7 +15,6 @@ const NAV=[
   {id:'dashboard',l:'Dashboard',i:'📊',s:'p'},
   {id:'facturas',l:'Facturas',i:'📄',s:'p'},
   {id:'pendientes',l:'Pendientes',i:'⏰',s:'p'},
-  {id:'aprobaciones',l:'Aprobaciones',i:'✅',s:'f'},
   {id:'causacion',l:'Causación',i:'📥',s:'f',roles:['admin','contador','tesorero']},
   {id:'categorias',l:'Categorías',i:'🏷️',s:'c',roles:['admin','contador']},
   {id:'centros',l:'Centros',i:'🗺️',s:'c',roles:['admin','contador']},
@@ -212,7 +211,6 @@ async function goTo(v){
     if(v==='dashboard')await rDash();
     else if(v==='facturas')await rFacturas();
     else if(v==='pendientes')await rPend();
-    else if(v==='aprobaciones')await rAprob();
     else if(v==='causacion')await rCaus();
     else if(v==='categorias')await rCats();
     else if(v==='centros')await rCentros();
@@ -526,20 +524,6 @@ async function rPend(){
     </div>`:''}
     ${all.length===0?'<div class="empty">No hay facturas pendientes ✓</div>':''}
   `;
-}
-
-// ─── APROBACIONES ───────────────────────────────────────────────────────────
-async function rAprob(){
-  const f=await api('GET','/facturas?estado=recibida&limit=100');const f2=await api('GET','/facturas?estado=revision&limit=100');
-  const all=[...f.data||[],...f2.data||[]];
-  $('content').innerHTML=`
-    <div class="page-header"><div><div class="page-title">Aprobaciones</div><div class="page-sub">${all.length} factura(s) por aprobar</div></div></div>
-    <div style="display:grid;gap:12px">${all.length?all.map(f=>`<div class="tbl" style="cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:20px" onclick="abrirF('${f.id}')">
-      <div style="flex:1"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span class="mono">${esc(f.numero_factura)}</span>${bdg(f.estado)}</div>
-      <div style="font-weight:500;margin-bottom:4px">${esc(f.proveedor_nombre||'Desconocido')}</div>
-      <div style="font-size:12px;color:var(--muted)">${ctag(f.categoria_color,f.categoria_nombre)} · ${esc(f.area_nombre||'Sin área')}</div></div>
-      <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px"><div style="font-size:18px;font-weight:700">${fmt(f.valor_total||f.valor||0)}</div>${f.archivo_pdf?`<button onclick="event.stopPropagation();verPdf('${f.id}')" class="btn btn-secondary btn-sm">📄 PDF</button>`:''}<div class="btn btn-primary btn-sm">Revisar</div></div>
-    </div>`).join(''):'<div class="empty">No hay facturas por aprobar ✓</div>'}</div>`;
 }
 
 // ─── CAUSACIÓN ───────────────────────────────────────────────────────────────
