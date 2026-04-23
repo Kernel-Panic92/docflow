@@ -665,4 +665,27 @@ router.get('/:id/pdf', requireRol('admin','contador','tesorero','comprador','aud
   }
 });
 
+// ─── DELETE /api/facturas/:id ──────────────────────────────────────────────────
+router.delete('/:id', requireRol('admin'), async (req, res) => {
+  const client = await db.getClient();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      'DELETE FROM facturas WHERE id=$1 RETURNING id, numero_factura',
+      [req.params.id]
+    );
+    if (!rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Factura eliminada', id: rows[0].id, numero_factura: rows[0].numero_factura });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
