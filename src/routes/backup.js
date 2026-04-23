@@ -106,7 +106,7 @@ async function generarZip(tipo = 'completo', timestamp = Date.now()) {
   backupProgress.current = 7; backupProgress.message = 'Eventos'; backupProgress.stage = 'eventos';
 
   const data = {
-    app:       'VitamarDocs',
+    app:       'DocFlow',
     version:   '1.0',
     tipo:      tipo,
     generado:  new Date().toISOString(),
@@ -275,7 +275,7 @@ router.post('/restore', soloAdmin, upload.single('backup'), async (req, res) => 
     return res.status(400).json({ error: 'backup.json corrupto' });
   }
 
-  if (data.app !== 'VitamarDocs') {
+  if (data.app !== 'DocFlow') {
     return res.status(400).json({ error: 'Archivo de backup incompatible' });
   }
 
@@ -382,7 +382,7 @@ router.post('/restore/local/:filename', soloAdmin, (req, res) => {
     return res.status(400).json({ error: 'backup.json corrupto' });
   }
 
-  if (data.app !== 'VitamarDocs') {
+  if (data.app !== 'DocFlow') {
     return res.status(400).json({ error: 'Archivo de backup incompatible' });
   }
 
