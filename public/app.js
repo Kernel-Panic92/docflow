@@ -1561,7 +1561,7 @@ async function renderCfgTab(cfg){
             </select>
           </div>
           <div class="field"><label>FRECUENCIA (cron)</label><input type="text" id="cfg-backup-auto-cron" value="${r.config?.backup_auto_cron||'0 2 * * *'}" placeholder="0 2 * * *"/><div style="font-size:11px;color:var(--muted);margin-top:4px">Formato: minuto hora día mes díaSemana. Ej: "0 2 * * *" = diario a las 2am</div></div>
-          <div class="field"><label>RETENCIÓN LOCAL (días)</label><input type="number" id="cfg-backup-auto-retention" value="${r.config?.backup_auto_retention||'7'}" placeholder="7"/><div style="font-size:11px;color:var(--success);margin-top:4px">✓ Backup local: ${APP_DIR}/backups</div></div>
+          <div class="field"><label>RETENCIÓN LOCAL (días)</label><input type="number" id="cfg-backup-auto-retention" value="${r.config?.backup_auto_retention||'7'}" placeholder="7"/><div style="font-size:11px;color:var(--success);margin-top:4px">✓ Backup local: ~/backups/docflow</div></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px">
           <button class="btn btn-primary" onclick="guardarCfg('backups')">💾 Guardar</button>
