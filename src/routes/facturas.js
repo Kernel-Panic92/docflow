@@ -98,10 +98,10 @@ router.get('/pendientes', requireRol('admin','contador','tesorero','comprador','
         c.nombre AS categoria_nombre, c.color AS categoria_color,
         a.nombre AS area_nombre,
         CASE 
-          WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $2 THEN 'critico'
-          WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $3 THEN 'alerta'
+          WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $1 THEN 'critico'
+          WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $2 THEN 'alerta'
           WHEN f.estado = 'causada' AND f.soporte_pago IS NULL THEN 'alerta'
-          WHEN f.estado = 'revision' AND f.recibida_en < $4 THEN 'alerta'
+          WHEN f.estado = 'revision' AND f.recibida_en < $3 THEN 'alerta'
           WHEN f.estado IN ('causada','aprobada') THEN 'sinpagar'
           WHEN f.estado IN ('revision','recibida') THEN 'sinaprobar'
           ELSE 'normal'
@@ -119,19 +119,19 @@ router.get('/pendientes', requireRol('admin','contador','tesorero','comprador','
        LEFT JOIN categorias_compra c ON c.id = f.categoria_id
        LEFT JOIN areas a ON a.id = f.area_responsable_id
        WHERE f.estado <> 'pagada'
-ORDER BY 
-          CASE 
-            WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $2 THEN 1 
-            WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $3 THEN 2 
-            WHEN f.estado IN ('revision','recibida') THEN 3
-            WHEN f.estado = 'causada' AND f.soporte_pago IS NULL THEN 4
-            WHEN f.estado IN ('causada','aprobada') THEN 5
-            ELSE 6 
-          END,
+       ORDER BY 
+         CASE 
+           WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $1 THEN 1 
+           WHEN f.limite_dian IS NOT NULL AND f.limite_dian <= $2 THEN 2 
+           WHEN f.estado IN ('revision','recibida') THEN 3
+           WHEN f.estado = 'causada' AND f.soporte_pago IS NULL THEN 4
+           WHEN f.estado IN ('causada','aprobada') THEN 5
+           ELSE 6 
+         END,
          f.limite_dian ASC NULLS LAST,
          f.recibida_en DESC
        LIMIT 200`,
-      [hoy.toISOString(), en3dias.toISOString(), en7dias.toISOString(), hace7dias.toISOString()]
+      [en3dias.toISOString(), en7dias.toISOString(), hace7dias.toISOString()]
     );
     res.json({ data: rows, total: rows.length });
   } catch (err) {
