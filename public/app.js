@@ -921,7 +921,7 @@ async function delFactura(id,numero){
   try{
     await api('DELETE',`/facturas/${id}`);
     toast('Factura eliminada','success');
-    if(VIsta==='facturas')renderizarFacturas();
+    if(S.view==='facturas')rFacturas();
     closeM();
   }catch(e){toast(e.message,'error')}
 }
