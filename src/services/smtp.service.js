@@ -1,44 +1,61 @@
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 const crypto     = require('crypto');
+const db        = require('../db');
 
 let transporter = null;
+let cachedConfig = null;
+
+async function getConfig() {
+  if (cachedConfig) return cachedConfig;
+  try {
+    const { rows } = await db.query('SELECT clave, valor FROM configuracion WHERE clave LIKE \'smtp_%\'');
+    cachedConfig = {};
+    for (const row of rows) {
+      cachedConfig[row.clave] = row.valor;
+    }
+    return cachedConfig;
+  } catch (e) {
+    console.error('[SMTP] Error cargando config:', e.message);
+    return {};
+  }
+}
 
 function clearCache() {
+  cachedConfig = null;
   transporter = null;
 }
 
-function getTransporter() {
+async function getTransporter() {
   if (transporter) return transporter;
 
-  const host       = process.env.SMTP_HOST;
-  const port       = parseInt(process.env.SMTP_PORT || '587');
-  const secure     = process.env.SMTP_SECURE === 'true' || port === 465;
-  const user      = process.env.SMTP_USER;
-  const pass     = process.env.SMTP_PASSWORD;
+  const cfg = await getConfig();
+  const host   = cfg.smtp_host || process.env.SMTP_HOST;
+  const port   = parseInt(cfg.smtp_port || process.env.SMTP_PORT || '587');
+  const secure = cfg.smtp_secure === 'true' || port === 465;
+  const user  = cfg.smtp_user || process.env.SMTP_USER;
+  const pass  = cfg.smtp_password || process.env.SMTP_PASSWORD;
 
   if (!host || !user) {
     console.warn('[SMTP] Servicio de correo no configurado');
     return null;
   }
 
-  const tlsConfig = process.env.SMTP_IGNORE_TLS === 'true' 
-    ? { rejectUnauthorized: false }
-    : { rejectUnauthorized: false };
-
   transporter = nodemailer.createTransport({
     host,
     port,
     secure,
-    requireTLS: !secure && process.env.SMTP_REQUIRE_TLS !== 'false',
+    requireTLS: !secure,
     auth: { user, pass },
-    tls: tlsConfig,
+    tls: { rejectUnauthorized: false },
   });
 
-return transporter;
+  return transporter;
 }
 
-function getFromAddress() {
-  return process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@tu-dominio.com';
+async function getFromAddress() {
+  const cfg = await getConfig();
+  return cfg.smtp_from || process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@tu-dominio.com';
 }
 
 function getBaseUrl(reqHost) {
@@ -47,15 +64,16 @@ function getBaseUrl(reqHost) {
 }
 
 async function enviar({ para, asunto, html, text }) {
-  const t = getTransporter();
+  const t = await getTransporter();
   if (!t) {
     console.warn(`[SMTP] No configurado — omitiendo email a ${para}`);
     return null;
   }
 
   try {
+    const fromAddr = await getFromAddress();
     const info = await t.sendMail({
-      from:    getFromAddress(),
+      from:    fromAddr,
       to:      para,
       subject: asunto,
       text:    text || html.replace(/<[^>]+>/g, ''),
@@ -380,8 +398,9 @@ async function enviarTest(para) {
   });
 }
 
-function isConfigured() {
-  return !!(process.env.SMTP_HOST && process.env.SMTP_USER);
+async function isConfigured() {
+  const cfg = await getConfig();
+  return !!(cfg.smtp_host && cfg.smtp_user) || !!(process.env.SMTP_HOST && process.env.SMTP_USER);
 }
 
 module.exports = {
