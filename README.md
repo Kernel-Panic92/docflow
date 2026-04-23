@@ -7,7 +7,7 @@ Sistema de gestión documental para facturas electrónicas colombianas (DIAN). I
 - **Backend:** Node.js 18+ / Express
 - **Base de datos:** PostgreSQL 14+
 - **Auth:** JWT con rate limiting
-- **Correo:** IMAP (FortiMail Cloud)
+- **Correo:** IMAP
 - **Jobs:** node-cron
 
 ---
