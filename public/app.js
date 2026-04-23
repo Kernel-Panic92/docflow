@@ -458,6 +458,9 @@ let pendFiltro='todas';
 let pendBusqueda='';
 async function rPend(){
   const savedSearch=pendBusqueda;
+  let savedCursorPos=0;
+  const input=$('pend-buscar');
+  if(input)savedCursorPos=input.selectionStart||0;
   const f=await api('GET','/facturas/pendientes');
   let all=f.data||[];
   
@@ -539,8 +542,12 @@ function renderItem(f){
     </div>`:''}
     ${all.length===0?'<div class="empty">No hay facturas pendientes ✓</div>':''}
   `;
-  $('pend-buscar')?.focus();
-  $('pend-buscar').value=savedSearch;
+  const inp=$('pend-buscar');
+  if(inp){
+    inp.value=savedSearch;
+    inp.setSelectionRange(savedCursorPos,savedCursorPos);
+    inp.focus();
+  }
 }
 
 // ─── CAUSACIÓN ───────────────────────────────────────────────────────────────
