@@ -243,6 +243,12 @@ async function rDash(){
   let stats='';
   if(esComprador){
     stats+=stat('Pendientes aprobar',r.recibidas+r.revision,'var(--accent2)','orange');
+  }else if(rol==='admin'){
+    stats+=stat('Recibidas',r.recibidas,'var(--accent)','blue');
+    stats+=stat('En revisión',r.revision,'var(--accent2)','orange');
+    stats+=stat('Por causar',r.aprobadas,'var(--success)','green');
+    stats+=stat('Por pagar',r.causadas,'var(--accent)','blue');
+    stats+=stat('Valor mes',fmt(r.valor_mes),'var(--warning)','yellow');
   }else if(esTesorero){
     stats+=stat('Por causar',r.aprobadas,'var(--success)','green');
     stats+=stat('Por pagar',r.causadas,'var(--accent)','blue');
