@@ -566,6 +566,7 @@ async function abrirF(id){
   if(['recibida','revision'].includes(f.estado)){acc.push(`<button class="btn btn-success btn-sm" onclick="mAprobar('${id}')">✓ Aprobar</button>`);acc.push(`<button class="btn btn-danger btn-sm" onclick="mRechazar('${id}')">✗ Rechazar</button>`);}
   if(f.estado==='aprobada')acc.push(`<button class="btn btn-success btn-sm" onclick="acF('${id}','causar')">📥 Causar</button>`);
   const isTesorero=['admin','tesorero'].includes(S.usuario?.rol);
+  const isAdmin=S.usuario?.rol==='admin';
   if(f.estado==='causada'&&isTesorero){
     if(!f.soporte_pago)acc.push(`<button class="btn btn-warning btn-sm" onclick="mSubirSoporte('${id}')">📤 Adjuntar soporte</button>`);
     if(f.soporte_pago)acc.push(`<button class="btn btn-secondary btn-sm" onclick="verSoporte('${id}')">📎 Ver soporte</button>`);
