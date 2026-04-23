@@ -424,7 +424,7 @@ async function rFacturas(filtro){
     <div class="tbl">
       <div class="tbl-head"><div class="tbl-title">${all.length} factura(s)</div></div>
       <table><thead><tr><th># Factura</th><th>Centro</th><th>Proveedor</th><th>Categoría</th><th>Valor</th><th>Estado</th><th>Recibida</th><th></th></tr></thead>
-      <tbody>${all.length?all.map(f=>`<tr onclick="abrirF('${f.id}')"><td class="mono" data-label="Factura">${esc(f.numero_factura)}</td><td data-label="Centro" style="font-size:12px;color:var(--muted)">${esc(f.centro_operacion_nombre||'—')}</td><td data-label="Proveedor" style="font-weight:500">${esc(f.proveedor_nombre||f.nombre_emisor||'—')}</td><td data-label="Categoría">${ctag(f.categoria_color,f.categoria_nombre)}</td><td data-label="Valor" style="font-weight:500">${fmt(f.valor_total||f.valor||0)}</td><td data-label="Estado">${bdg(f.estado)}</td><td data-label="Recibida" style="color:var(--muted);font-size:12px">${f.fecha_factura?fdate(f.fecha_factura):fdatetime(f.recibida_en)}</td><td>${f.archivo_pdf?`<span onclick="event.stopPropagation();verPdf('${f.id}')" title="Ver PDF" style="color:var(--accent);font-size:16px;cursor:pointer">📄</span>`:''}${isAdmin?`<span onclick="event.stopPropagation();delFactura('${f.id}','${esc(f.numero_factura)}')" title="Eliminar" style="color:var(--danger);font-size:14px;cursor:pointer;margin-left:6px">🗑️</span>`:''}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">Sin facturas</td></tr>'}</tbody></table>
+      <tbody>${all.length?all.map(f=>`<tr onclick="abrirF('${f.id}')"><td class="mono" data-label="Factura">${esc(f.numero_factura)}</td><td data-label="Centro" style="font-size:12px;color:var(--muted)">${esc(f.centro_operacion_nombre||'—')}</td><td data-label="Proveedor" style="font-weight:500">${esc(f.proveedor_nombre||f.nombre_emisor||'—')}</td><td data-label="Categoría">${ctag(f.categoria_color,f.categoria_nombre)}</td><td data-label="Valor" style="font-weight:500">${fmt(f.valor_total||f.valor||0)}</td><td data-label="Estado">${bdg(f.estado)}</td><td data-label="Recibida" style="color:var(--muted);font-size:12px">${fdatetime(f.recibida_en)}</td><td>${f.archivo_pdf?`<span onclick="event.stopPropagation();verPdf('${f.id}')" title="Ver PDF" style="color:var(--accent);font-size:16px;cursor:pointer">📄</span>`:''}${isAdmin?`<span onclick="event.stopPropagation();delFactura('${f.id}','${esc(f.numero_factura)}')" title="Eliminar" style="color:var(--danger);font-size:14px;cursor:pointer;margin-left:6px">🗑️</span>`:''}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">Sin facturas</td></tr>'}</tbody></table>
     </div>`;
   refreshBadges();
 }
@@ -457,6 +457,7 @@ function limpiarFiltrosF(){
 let pendFiltro='todas';
 let pendBusqueda='';
 async function rPend(){
+  const savedSearch=pendBusqueda;
   const f=await api('GET','/facturas/pendientes');
   let all=f.data||[];
   
@@ -538,6 +539,8 @@ function renderItem(f){
     </div>`:''}
     ${all.length===0?'<div class="empty">No hay facturas pendientes ✓</div>':''}
   `;
+  $('pend-buscar')?.focus();
+  $('pend-buscar').value=savedSearch;
 }
 
 // ─── CAUSACIÓN ───────────────────────────────────────────────────────────────
