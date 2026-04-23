@@ -1,5 +1,28 @@
 # DocFlow - Changelog
 
+## v1.1.8 - SMTP & UI Improvements
+Fecha: 2026-04-24
+
+### SMTP Configuration
+- ✅ SSL/TLS options: STARTTLS (587) or SSL (465)
+- ✅ UI dropdown to select encryption method
+- ✅ Load SMTP config from database, not just .env
+- ✅ Clear cache when config changes
+- ✅ Fix: from address must match authenticated user (550 error)
+- ✅ Added SMTP_SECURE, SMTP_REQUIRE_TLS env variables
+
+### UI Improvements
+- ✅ New module: Áreas (manage organizational areas)
+- ✅ New module: Por Pagar (for tesorero/admin)
+- ✅ Dashboard: stats for admin include all metrics
+- ✅ Fix: isAdmin not defined error
+- ✅ Fix: APP_DIR undefined in backups UI
+- ✅ Fix: SyntaxError with backticks in onclick attributes
+
+### Bug Fixes (Pending)
+- ⏳ **413 Payload Too Large** when restoring backups
+  - File upload size limit needs adjustment
+
 ## v1.1.7 - Security Hardening
 Fecha: 2026-04-23
 
