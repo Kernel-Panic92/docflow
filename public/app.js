@@ -172,7 +172,7 @@ function showApp(){
   // Cargar versión
   fetch('/api/version').then(r=>r.json()).then(d=>{
     const el=document.getElementById('app-version');
-    if(el&&d.version)el.textContent='v'+d.version+' — Vitamar Docs';
+    if(el&&d.version)el.textContent='v'+d.version+' — DocFlow';
     const cr=document.getElementById('app-copyright');
     if(cr&&d.author)cr.textContent=d.author;
   }).catch(()=>{});
@@ -1039,7 +1039,7 @@ async function rBackup(){
         <div style="border-top:1px solid var(--border);padding-top:20px;">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;">📂 Restaurar desde Archivo</div>
           <p style="color:var(--muted);font-size:12px;margin-bottom:14px;line-height:1.6;">
-            Sube un <strong style="color:var(--text)">.zip</strong> generado por Vitamar Docs.
+            Sube un <strong style="color:var(--text)">.zip</strong> generado por DocFlow.
           </p>
           <div id="restore-drop" onclick="document.getElementById('restore-file').click()"
             style="border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color 0.2s;"
@@ -1375,7 +1375,7 @@ async function renderCfgTab(cfg){
 
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
         <div style="font-family:var(--font-head);font-size:16px;font-weight:700;margin-bottom:12px">Nombre de la aplicación</div>
-        <div class="field"><label>NOMBRE</label><input type="text" id="cfg-app-nombre" value="${esc(cfg.app_nombre?.valor||'Vitamar Docs')}" placeholder="DocFlow"/></div>
+        <div class="field"><label>NOMBRE</label><input type="text" id="cfg-app-nombre" value="${esc(cfg.app_nombre?.valor||'DocFlow')}" placeholder="DocFlow"/></div>
         <div style="display:flex;gap:10px;margin-top:16px">
           <button class="btn btn-primary" onclick="guardarCfg('general')">💾 Guardar</button>
         </div>
@@ -1427,7 +1427,7 @@ async function renderCfgTab(cfg){
           <div class="field"><label>PUERTO</label><input type="number" id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"/></div>
           <div class="field"><label>USUARIO</label><input type="text" id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
           <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"/></div>
-          <div class="field full"><label>REMITENTE (FROM)</label><input type="text" id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="Vitamar Docs <notificaciones@dominio.com>"/></div>
+          <div class="field full"><label>REMITENTE (FROM)</label><input type="text" id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="DocFlow <notificaciones@dominio.com>"/></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px">
           <button class="btn btn-primary" onclick="guardarCfg('smtp')">💾 Guardar</button>
