@@ -12,7 +12,12 @@ router.use(authMiddleware);
 // Helper: sanitizar entrada para evitar command injection
 function sanitizeShellArg(str) {
   if (!str || typeof str !== 'string') return '';
-  return str.replace(/[;&|`$(){}\\n\r]/g, '').trim();
+  const dangerous = [';', '&', '|', '`', '$', '(', ')', '{', '}', '\\'];
+  let result = str;
+  for (const char of dangerous) {
+    result = result.split(char).join('');
+  }
+  return result.replace(/[\n\r]/g, '').trim();
 }
 
 // Helper: validar expresión cron
