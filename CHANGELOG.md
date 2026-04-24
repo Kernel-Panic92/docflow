@@ -1,5 +1,13 @@
 # DocFlow - Changelog
 
+## v1.1.10 - Updater Fix
+Fecha: 2026-04-24
+
+### Updater
+- ✅ Fix: compare commits directly (HEAD vs origin/main)
+- ✅ Force fetch all remotes and prune
+- ✅ Show actual commit hash when update available
+
 ## v1.1.9 - NAS Backup Fixes
 Fecha: 2026-04-24
 

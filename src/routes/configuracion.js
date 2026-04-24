@@ -328,24 +328,22 @@ router.get('/updater/status', requireRol('admin'), async (req, res) => {
 router.post('/updater/check', requireRol('admin'), async (req, res) => {
   try {
     logUpdater('Verificando actualizaciones...');
-    execSync('git fetch origin', { cwd: APP_DIR, stdio: 'pipe' });
+    
+    // Force fetch all remotes and prune to get latest refs
+    execSync('git fetch origin --all --prune', { cwd: APP_DIR, stdio: 'pipe' });
     
     const currentCommit = execSync('git rev-parse --short HEAD', { cwd: APP_DIR }).toString().trim();
+    const remoteCommit = execSync('git rev-parse --short origin/main', { cwd: APP_DIR }).toString().trim();
     
-    let behind = 0;
-    try {
-      behind = parseInt(execSync('git rev-list HEAD..origin/main --count 2>/dev/null || git rev-list HEAD..origin/master --count 2>/dev/null || echo 0', { cwd: APP_DIR }).toString().trim());
-    } catch (e) { behind = 0; }
+    const behind = currentCommit !== remoteCommit ? 1 : 0;
     
     let changes = [];
     if (behind > 0) {
-      try {
-        const diff = execSync('git log HEAD..origin/main --oneline 2>/dev/null || git log HEAD..origin/master --oneline 2>/dev/null', { cwd: APP_DIR }).toString().trim();
-        changes = diff.split('\n').filter(l => l.trim()).slice(0, 10);
-      } catch (e) {}
+      logUpdater(`Nueva versión disponible: ${remoteCommit}`);
+      changes = [remoteCommit];
+    } else {
+      logUpdater('Sistema actualizado');
     }
-    
-    logUpdater(`Verificación completada: ${behind} actualización(es) disponible(s)`);
     
     res.json({
       ok: true,
