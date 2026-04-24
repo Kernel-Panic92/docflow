@@ -21,8 +21,11 @@ router.use(authMiddleware);
 const soloAdmin = requireRol('admin');
 
 const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 100 * 1024 * 1024 },
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, os.tmpdir()),
+    filename: (req, file, cb) => cb(null, `restore_${Date.now()}_${file.originalname}`),
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 },
 });
 
 const APP_DIR = path.resolve(__dirname, '../..');
@@ -260,7 +263,7 @@ router.post('/restore', soloAdmin, upload.single('backup'), async (req, res) => 
 
   let zip;
   try {
-    zip = new AdmZip(req.file.buffer);
+    zip = new AdmZip(req.file.path);
   } catch (err) {
     return res.status(400).json({ error: 'Archivo ZIP inválido' });
   }
@@ -350,6 +353,9 @@ router.post('/restore', soloAdmin, upload.single('backup'), async (req, res) => 
     res.status(500).json({ error: 'Error en restauración: ' + err.message });
   } finally {
     client.release();
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
   }
 });
 

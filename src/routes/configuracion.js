@@ -778,14 +778,15 @@ router.post('/backups-auto/now', requireRol('admin'), async (req, res) => {
         const nasUser = (cfg.backup_auto_user || '').replace(/[^a-zA-Z0-9._\-@]/g, '');
         const nasPass = (cfg.backup_auto_pass || '').replace(/["`$]/g, '');
         const nasPath = (cfg.backup_auto_path || '').replace(/\\/g, '/');
+        const remoteName = filename;
         
         // Usar smbclient para copiar
         const nasDest = `//${nasHost}${nasPath}`;
         const userArg = nasUser + (nasPass ? '%' + nasPass : '');
-        const cmd = `smbclient "${nasDest}" -U "${userArg}" -c "put ${filename}" < "${backupPath}" 2>&1`;
+        const cmd = `smbclient "${nasDest}" -U "${userArg}" -c "put ${backupPath} ${remoteName}"`;
         console.log('[Backup] CMD:', cmd);
         
-        const copyResult = execSync(cmd, { stdio: 'pipe', timeout: 60 }).toString();
+        const copyResult = execSync(cmd, { stdio: 'pipe', timeout: 120 }).toString();
         console.log('[Backup] NAS copy result:', copyResult);
         
         if (!copyResult.includes('OK') && !copyResult.includes('putting')) {
