@@ -1081,6 +1081,7 @@ async function rBackup(){
               <button class="btn btn-secondary btn-sm" onclick="cargarListaBackups()">🔄 Actualizar</button>
             </div>
           </div>
+          <div id="backup-progress" style="display:none;margin:8px 0;padding:8px 12px;background:var(--surface2);border-radius:8px;"></div>
           <div id="lista-backups-loading" style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">Cargando...</div>
           <div id="lista-backups-none" style="display:none;text-align:center;padding:16px;color:var(--muted);font-size:12px;background:var(--surface2);border-radius:9px;">🕐 No hay backups disponibles</div>
           <div id="lista-backups-body" style="display:none;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;"></div>
@@ -1810,15 +1811,42 @@ async function ejecutarBackupAhora(){
   }catch(e){toast(e.message,'error')}
 }
 
+let backupPollingTimer=null;
 async function generarBackupServidor(){
   const btn=event.target;
-  btn.disabled=true;btn.textContent='Generando...';
+  const progDiv=$('backup-progress');
+  btn.disabled=true;
+  btn.textContent='Generando...';
   try{
-    const r=await api('POST','/configuracion/backups-auto/now');
-    toast(r.path?'Backup creado en servidor':'Backup generado','success');
-    cargarListaBackups();
+    const r=await api('POST','/api/backup?action=generate&tipo=completo');
+    if(progDiv)progDiv.style.display='block';
+    let attempts=0;
+    const poll=setInterval(async()=>{
+      attempts++;
+      try{
+        const p=await api('GET','/api/backup/progreso');
+        if(progDiv){
+          progDiv.innerHTML=`<div style="font-size:12px;color:var(--accent)">${p.message||p.stage||'Generando...'} ${p.total?Math.round(p.current*100/p.total)+'%':''}</div>
+            <div style="background:var(--surface2);border-radius:4px;height:6px;margin-top:4px;overflow:hidden">
+              <div style="background:var(--accent);height:100%;width:${p.total?Math.round(p.current*100/p.total):0}%"></div>
+            </div>`;
+        }
+        if(p.stage==='done'||!p.total){
+          clearInterval(poll);
+          if(progDiv)progDiv.style.display='none';
+          toast('Backup generado','success');
+          cargarListaBackups();
+        }
+        if(attempts>300){
+          clearInterval(poll);
+          if(progDiv)progDiv.style.display='none';
+          toast('Tiempo de espera agotado','error');
+        }
+      }catch(e){clearInterval(poll)}
+    },1000);
   }catch(e){toast(e.message,'error')}
-  btn.disabled=false;btn.textContent='➕ Generar';
+  btn.disabled=false;
+  btn.textContent='➕ Generar';
 }
 
 async function verCronLogs(){
