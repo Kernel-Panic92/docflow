@@ -684,6 +684,7 @@ router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
 });
 
 router.post('/backups-auto/now', requireRol('admin'), async (req, res) => {
+  console.log('[DEBUG] ==================== BACKUP NOW START ====================');
   try {
     const { execSync: exec } = require('child_process');
     const os = require('os');
