@@ -750,6 +750,8 @@ router.post('/backups-auto/now', requireRol('admin'), async (req, res) => {
       const cfg = {};
       for (const row of cfgRows) cfg[row.clave] = row.valor;
       
+      console.log('[Backup] NAS config:', JSON.stringify(cfg));
+      
       if (cfg.backup_auto_type === 'smb' && cfg.backup_auto_host) {
         console.log('[Backup] Copiando a NAS...');
         const nasHost = cfg.backup_auto_host.replace(/[^a-zA-Z0-9._\-]/g, '');
