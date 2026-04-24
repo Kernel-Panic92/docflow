@@ -642,18 +642,18 @@ router.put('/backups-auto', requireRol('admin'), async (req, res) => {
 router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
   let { path: backupPath, type, host, user, pass } = req.body;
   
-  if (!host || !user || !pass) {
+  if (!host || !user) {
     return res.status(400).json({ ok: false, error: 'Faltan parámetros requeridos' });
   }
   
   try {
     if (type === 'smb' && host) {
-      host = host.replace(/[^a-zA-Z0-9._\-\/]/g, '');
+      host = host.replace(/[^a-zA-Z0-9._\-]/g, '');
       user = user.replace(/[^a-zA-Z0-9._\-@]/g, '');
-      pass = pass.replace(/["`$]/g, '');
+      pass = (pass || '').replace(/["`$]/g, '');
       
-      const safeUrl = `smb://${encodeURIComponent(host.replace(/\\/g, '/'))}/`;
-      const test = execSync(`curl -s -u "${user}:${pass}" --connect-timeout 5 "${safeUrl}" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
+      const safeUrl = `smb://${host.replace(/\\/g, '/')}/`;
+      const test = execSync(`curl -s -u "${user}${pass ? ':' + pass : ''}" --connect-timeout 5 "${safeUrl}" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
       if (test.includes('FAIL')) {
         return res.status(400).json({ ok: false, error: 'No se pudo conectar al servidor SMB' });
       }
