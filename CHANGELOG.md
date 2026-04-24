@@ -3,6 +3,17 @@
 ## v1.1.8 - SMTP & UI Improvements
 Fecha: 2026-04-24
 
+### Security Updates
+- ✅ Updated all dependencies to fix vulnerabilities:
+  - adm-zip: 0.5.14 → 0.5.17 (path traversal fix)
+  - express: 4.19.2 → 4.21.0 (security headers)
+  - multer: 1.4.5-lts.1 → 2.1.1 (8 DoS fixes)
+  - nodemailer: 6.9.16 → 8.0.5 (SMTP injection fixes)
+  - uuid: 10.0.0 → 11.0.5 (buffer bounds check)
+- ✅ Added Node.js 20+ requirement (engines field)
+- ✅ Added overrides for transitive dependencies
+- ✅ All 12 vulnerabilities resolved
+
 ### SMTP Configuration
 - ✅ SSL/TLS options: STARTTLS (587) or SSL (465)
 - ✅ UI dropdown to select encryption method
