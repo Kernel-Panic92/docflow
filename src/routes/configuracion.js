@@ -275,13 +275,39 @@ function logUpdater(msg) {
   const timestamp = new Date().toISOString();
   const logLine = `[${timestamp}] ${msg}`;
   console.log('[UPDATER]', logLine);
+  
   try {
-    const logsDir = path.dirname(UPDATER_LOG);
-    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
-    fs.appendFileSync(UPDATER_LOG, logLine + '\n');
+    // Ensure logs directory exists
+    const logsDir = path.join(APP_DIR, 'logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    // Also ensure parent directory exists
+    const logFile = path.join(logsDir, 'updater.log');
+    fs.appendFileSync(logFile, logLine + '\n');
   } catch (e) {
-    console.log('[UPDATER ERROR]', e.message);
+    console.log('[UPDATER ERROR writing log]', e.message, '-> trying to write to:', UPDATER_LOG);
   }
+  
+  return logLine;
+}
+
+function getUpdaterLog() {
+  // Get from process env as fallback (for debugging)
+  const debugLog = process.env.UPDATER_DEBUG || '';
+  
+  try {
+    if (fs.existsSync(UPDATER_LOG)) {
+      const content = fs.readFileSync(UPDATER_LOG, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim()).slice(-100);
+      const fileLog = lines.join('\n');
+      return fileLog || debugLog || 'Sin registros';
+    }
+  } catch (e) {
+    console.log('[UPDATER ERROR reading log]', e.message);
+  }
+  return debugLog || 'Sin registros';
+}
   console.log(`[Updater] ${msg}`);
 }
 
