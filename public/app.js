@@ -1059,12 +1059,11 @@ async function rBackup(){
           <div style="font-weight:600;margin-bottom:10px;">Opciones de backup:</div>
           <div style="display:flex;flex-direction:column;gap:6px;color:var(--muted);">
             <span>✓ Solo configuración (∼20KB): Facturas, categorías, usuarios, áreas, configuración</span>
-            <span>✓ Completo (∼variable): Lo anterior + archivos subidos (PDFs, facturas, adjuntos)</span>
+            <span>✓ Backup completo: Genera en servidor (panel derecho)</span>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-secondary" id="btn-descargar-backup-config" onclick="descargarBackup('config')" style="flex:1;justify-content:center;padding:11px;">⚙️ Solo Config</button>
-          <button class="btn btn-primary" id="btn-descargar-backup" onclick="descargarBackup('completo')" style="flex:1;justify-content:center;padding:11px;">💾 Completo</button>
+          <button class="btn btn-primary" id="btn-descargar-backup-config" onclick="descargarBackup('config')" style="flex:1;justify-content:center;padding:11px;">⚙️ Solo Config</button>
         </div>
         <div id="backup-ok" style="display:none;margin-top:14px;padding:10px 14px;background:rgba(79,190,150,0.1);border:1px solid rgba(79,190,150,0.3);border-radius:9px;font-size:13px;color:var(--success);">✓ Backup generado y descargado correctamente.</div>
       </div>
