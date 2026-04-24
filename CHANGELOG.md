@@ -1,5 +1,19 @@
 # DocFlow - Changelog
 
+## v1.1.9 - NAS Backup Fixes
+Fecha: 2026-04-24
+
+### NAS Backup Configuration
+- ✅ Added RUTA COMPARTIDA input field (was missing)
+- ✅ Fix sanitizeShellArg corrupting "nas" in paths (nas → as)
+- ✅ Backup now copies to NAS using smbclient
+- ✅ Allow guest access without password
+- ✅ Fix host sanitization preserving dots (192.168.0.10)
+
+### IMAP Sync
+- ✅ Fix cron validation allowing */120 format
+- ✅ Allow empty cron to disable sync
+
 ## v1.1.8 - SMTP & UI Improvements
 Fecha: 2026-04-24
 
