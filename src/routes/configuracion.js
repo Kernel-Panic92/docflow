@@ -642,7 +642,6 @@ router.put('/backups-auto', requireRol('admin'), async (req, res) => {
 router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
   let { path: backupPath, type, host, user, pass } = req.body;
   
-  // Log to error log file for debugging
   fs.appendFileSync(path.join(APP_DIR, 'logs', 'error.log'), `[${new Date().toISOString()}] SMB test: ${JSON.stringify(req.body)}\n`);
   
   if (!host || !user) {
@@ -655,9 +654,16 @@ router.post('/backups-auto/test', requireRol('admin'), async (req, res) => {
       user = user.replace(/[^a-zA-Z0-9._\-@]/g, '');
       pass = (pass || '').replace(/["`$]/g, '');
       
-      const safeUrl = `smb://${host.replace(/\\/g, '/')}/`;
-      const test = execSync(`curl -s -u "${user}${pass ? ':' + pass : ''}" --connect-timeout 5 "${safeUrl}" 2>&1 || echo "FAIL"`, { stdio: 'pipe' }).toString();
-      if (test.includes('FAIL')) {
+      // Try smbclient first (always available on Linux with samba-client)
+      const share = backupPath || '/';
+      let test;
+      try {
+        test = execSync(`smbclient //${host}${share} -U ${user}${pass ? '%' + pass : ''} -c "ls" 2>&1`, { stdio: 'pipe', timeout: 10 }).toString();
+      } catch(e) {
+        test = e.stdout?.toString() || e.message || 'FAIL';
+      }
+      
+      if (test.includes('NT_STATUS') || test.includes('FAIL') || test.includes('Error')) {
         return res.status(400).json({ ok: false, error: 'No se pudo conectar al servidor SMB' });
       }
       res.json({ ok: true, message: 'Conexión SMB exitosa' });
