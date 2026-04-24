@@ -274,11 +274,14 @@ const UPDATER_LOG = path.join(APP_DIR, 'logs', 'updater.log');
 function logUpdater(msg) {
   const timestamp = new Date().toISOString();
   const logLine = `[${timestamp}] ${msg}`;
+  console.log('[UPDATER]', logLine);
   try {
     const logsDir = path.dirname(UPDATER_LOG);
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     fs.appendFileSync(UPDATER_LOG, logLine + '\n');
-  } catch (e) {}
+  } catch (e) {
+    console.log('[UPDATER ERROR]', e.message);
+  }
   console.log(`[Updater] ${msg}`);
 }
 
