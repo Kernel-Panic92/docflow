@@ -29,8 +29,7 @@ const upload = multer({
 });
 
 const APP_DIR = path.resolve(__dirname, '../..');
-const HOME_DIR = os.homedir();
-const BACKUP_DIR = path.join(HOME_DIR, 'backups', 'docflow');
+const BACKUP_DIR = path.join(APP_DIR, 'backups');
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(APP_DIR, 'uploads');
 
 console.log('[Backup] Directorio de backups:', BACKUP_DIR);

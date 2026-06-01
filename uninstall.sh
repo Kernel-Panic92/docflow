@@ -154,25 +154,24 @@ echo ""
 echo -e "${AZUL}── Eliminando archivos ──────────────────────────${RESET}"
 
 if [[ -d "$UNINSTALL_DIR" ]]; then
-  if [[ -d "$UNINSTALL_DIR/logs" ]] && [[ -n "$(ls -A "$UNINSTALL_DIR/logs" 2>/dev/null)" ]]; then
-    LOGS_BACKUP="$HOME/docflow_logs_$(date +%Y%m%d_%H%M%S)"
-    cp -r "$UNINSTALL_DIR/logs" "$LOGS_BACKUP"
-    ok "Logs respaldados en: $LOGS_BACKUP"
-  fi
-
-  if [[ -d "$UNINSTALL_DIR/uploads" ]] && [[ -n "$(ls -A "$UNINSTALL_DIR/uploads" 2>/dev/null)" ]]; then
-    UPLOADS_BACKUP="$HOME/docflow_uploads_$(date +%Y%m%d_%H%M%S)"
-    cp -r "$UNINSTALL_DIR/uploads" "$UPLOADS_BACKUP"
-    ok "Uploads respaldados en: $UPLOADS_BACKUP"
-  fi
-
   rm -rf "$UNINSTALL_DIR"
   ok "Archivos de aplicación eliminados"
 else
   info "Directorio de aplicación no encontrado"
 fi
 
-# ── 6. Limpiar dependencias globales ───────────────────
+# ── 6. Limpiar respaldos viejos en /root ────────────
+echo ""
+echo -e "${AZUL}── Limpiando respaldos viejos ──────────────────────${RESET}"
+
+for DIR in "$HOME"/*backup* "$HOME"/backups "$HOME"/docflow_* "$HOME"/vitamar-docs_*; do
+  if [[ -d "$DIR" ]] && [[ "$DIR" != "$HOME" ]]; then
+    rm -rf "$DIR"
+    ok "Eliminado: $DIR"
+  fi
+done
+
+# ── 7. Limpiar dependencias globales ───────────────────
 echo ""
 echo -e "${AZUL}── Limpiando dependencias globales ─────────────${RESET}"
 
