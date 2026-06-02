@@ -310,4 +310,11 @@ async function migrate() {
   }
 }
 
+if (require.main === module) {
+  migrate().then(async () => { const { pool } = require('./index'); await pool.end(); process.exit(0); }).catch(err => {
+    console.error('\n❌ Migración fallida:', err.message);
+    process.exit(1);
+  });
+}
+
 module.exports = migrate;

@@ -33,6 +33,18 @@ const upload = multer({
   },
 });
 
+const uploadSoporte = multer({
+  storage,
+  limits: { fileSize: (parseInt(process.env.MAX_FILE_MB) || 10) * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    if (!allowed.includes(path.extname(file.originalname).toLowerCase())) {
+      return cb(new Error('Tipo de archivo no permitido. Use PDF, PNG, JPG o GIF'));
+    }
+    cb(null, true);
+  },
+});
+
 // ─── Helper: registrar evento ─────────────────────────────────────────────────
 async function registrarEvento(client, facturaId, usuarioId, tipo, comentario = null, metadata = null) {
   await client.query(
@@ -577,7 +589,7 @@ router.patch('/:id/pagar', requireRol('admin','tesorero'), async (req, res) => {
 });
 
 // ─── POST /api/facturas/:id/soporte-pago ───────────────────────────────────
-router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('soporte'), async (req, res) => {
+router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.single('soporte'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Archivo requerido' });
   }

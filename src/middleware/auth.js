@@ -24,7 +24,11 @@ async function authMiddleware(req, res, next) {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Sesión expirada' });
     }
-    return res.status(401).json({ error: 'Token inválido' });
+    if (err.name === 'JsonWebTokenError' || err.name === 'NotBeforeError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    console.error('[auth] Error de autenticación:', err.message);
+    return res.status(500).json({ error: 'Error interno de autenticación' });
   }
 }
 
