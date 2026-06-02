@@ -204,7 +204,20 @@ router.all('/', soloAdmin, async (req, res) => {
     
     const size = fs.statSync(filepath).size;
     console.log('[Backup] Guardado, size:', size);
-    
+
+    // Rotar: mantener solo los últimos 14 backups
+    try {
+      const backups = fs.readdirSync(BACKUP_DIR)
+        .filter(f => f.startsWith('docflow_backup_') && f.endsWith('.zip'))
+        .sort().reverse();
+      if (backups.length > 14) {
+        for (const f of backups.slice(14)) {
+          fs.unlinkSync(path.join(BACKUP_DIR, f));
+          console.log('[Backup] Eliminado por retención:', f);
+        }
+      }
+    } catch (e) { /* ignore */ }
+
     // Copiar a NAS si está configurado
     try {
       const cfgRows = await db.query(

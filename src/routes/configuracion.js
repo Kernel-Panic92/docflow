@@ -49,7 +49,13 @@ const logoUpload = multer({
 
 router.post('/logo', requireRol('admin'), logoUpload.single('logo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
-  
+
+  const logoDir = path.join(process.cwd(), 'public', 'logos');
+  try {
+    const viejos = fs.readdirSync(logoDir).filter(f => f.startsWith('logo_') && f !== req.file.filename);
+    for (const f of viejos) fs.unlinkSync(path.join(logoDir, f));
+  } catch (e) { /* ignore */ }
+
   const url = `/logos/${req.file.filename}`;
   
   await db.query(

@@ -684,9 +684,22 @@ router.get('/:id/pdf', requireRol('admin','contador','tesorero','comprador','aud
 });
 
 // ─── DELETE /api/facturas/:id ──────────────────────────────────────────────────
+const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
+
+function limpiarArchivo(ruta) {
+  if (ruta) { const p = path.join(UPLOAD_DIR, 'facturas', ruta); if (fs.existsSync(p)) fs.unlinkSync(p); }
+}
+function limpiarSoporte(ruta) {
+  if (ruta) { const p = path.join(UPLOAD_DIR, 'soportes', ruta); if (fs.existsSync(p)) fs.unlinkSync(p); }
+}
+
 router.delete('/:id', requireRol('admin'), async (req, res) => {
   const client = await db.getClient();
   try {
+    const { rows: old } = await client.query(
+      'SELECT archivo_pdf, archivo_xml, soporte_pago FROM facturas WHERE id=$1',
+      [req.params.id]
+    );
     await client.query('BEGIN');
     const { rows } = await client.query(
       'DELETE FROM facturas WHERE id=$1 RETURNING id, numero_factura',
@@ -697,6 +710,11 @@ router.delete('/:id', requireRol('admin'), async (req, res) => {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
     await client.query('COMMIT');
+    if (old[0]) {
+      limpiarArchivo(old[0].archivo_pdf);
+      limpiarArchivo(old[0].archivo_xml);
+      limpiarSoporte(old[0].soporte_pago);
+    }
     res.json({ mensaje: 'Factura eliminada', id: rows[0].id, numero_factura: rows[0].numero_factura });
   } catch (err) {
     await client.query('ROLLBACK');

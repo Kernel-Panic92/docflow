@@ -482,6 +482,26 @@ fi
 
 pm2 save
 pm2 startup | tail -1 | bash 2>/dev/null || warn "Ejecuta manualmente: pm2 startup"
+
+# Rotación de logs
+pm2 install pm2-logrotate 2>/dev/null || warn "Si falla, ejecuta: pm2 install pm2-logrotate"
+pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
+pm2 set pm2-logrotate:retain 7 2>/dev/null || true
+pm2 set pm2-logrotate:compress true 2>/dev/null || true
+
+# Logrotate del sistema para logs adicionales
+cat > /tmp/docflow-logrotate << LOGR
+$INSTALL_DIR/logs/*.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+}
+LOGR
+sudo mv /tmp/docflow-logrotate /etc/logrotate.d/docflow 2>/dev/null || warn "No se pudo instalar logrotate system, ejecuta manual: sudo apt install logrotate"
 ok "PM2 configurado para arrancar con el sistema"
 
 # ── 16. Cron de backup ────────────────────────────────────────
