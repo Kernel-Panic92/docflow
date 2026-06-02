@@ -173,9 +173,11 @@ function showApp(){
   // Cargar versión
   fetch('/api/version').then(r=>r.json()).then(d=>{
     const el=document.getElementById('app-version');
-    if(el&&d.version)el.textContent='v'+d.version+' — DocFlow';
+    if(el&&d.version)el.textContent='v'+d.version+(d.branch?' ['+d.branch+']':'');
     const cr=document.getElementById('app-copyright');
     if(cr&&d.author)cr.textContent=d.author;
+    const repoEl=document.getElementById('app-repo');
+    if(repoEl&&d.repo)repoEl.innerHTML='<a href="'+d.repo+'" target="_blank" style="color:var(--accent);text-decoration:none;">GitHub</a>';
   }).catch(()=>{});
   if(S.empresaLogo){
     $('header-logo').innerHTML='<img src="'+S.empresaLogo+'" style="height:32px;border-radius:6px"/>';

@@ -102,15 +102,30 @@ app.listen(PORT, () => {
       
       const author = pkg.author || '';
       const displayAuthor = author.includes(year) ? author : `© ${year} - ${author}`;
-      
+
+      const branch = (() => {
+        try {
+          return require('child_process').execSync('git branch --show-current', { cwd: __dirname, encoding: 'utf8' }).trim();
+        } catch { return ''; }
+      })();
+
+      const repo = (() => {
+        try {
+          const remote = require('child_process').execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8' }).trim();
+          return remote.replace(/\.git$/, '').replace(/^git@/, 'https://').replace(/:(\w)/, '/$1');
+        } catch { return ''; }
+      })();
+
       res.json({ 
         version: pkg.version || '1.0.0', 
         name: pkg.name,
         author: displayAuthor,
-        year: year
+        year: year,
+        branch: branch || 'main',
+        repo: repo
       });
     } catch { 
-      res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString() }); 
+      res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString(), branch: 'main', repo: '' }); 
     }
   });
 
