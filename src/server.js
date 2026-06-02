@@ -91,7 +91,8 @@ app.get('/api/version', (req, res) => {
       branch: branch || 'main',
       repo
     });
-  } catch {
+  } catch (e) {
+    console.error('[version]', e.message);
     res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString(), branch: 'main', repo: '' });
   }
 });
