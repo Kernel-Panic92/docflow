@@ -54,6 +54,45 @@ app.get('/app.js', (req, res) => {
   res.sendFile(file);
 });
 
+// ─── Endpoint de versión ───────────────────────────────────────────────────────
+app.get('/api/version', (req, res) => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+
+    let year = new Date().getFullYear().toString();
+    try {
+      const commitDate = require('child_process').execSync('git log -1 --format=%ai --quiet', { cwd: __dirname, encoding: 'utf8' }).trim();
+      if (commitDate) year = commitDate.substring(0, 4);
+    } catch (e) { /* ignore */ }
+
+    const author = pkg.author || '';
+    const displayAuthor = author.includes(year) ? author : `© ${year} - ${author}`;
+
+    const branch = (() => {
+      try { return require('child_process').execSync('git branch --show-current', { cwd: __dirname, encoding: 'utf8' }).trim(); }
+      catch { return ''; }
+    })();
+
+    const repo = (() => {
+      try {
+        const remote = require('child_process').execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8' }).trim();
+        return remote.replace(/\.git$/, '').replace(/^git@/, 'https://').replace(/:(\w)/, '/$1');
+      } catch { return ''; }
+    })();
+
+    res.json({
+      version: pkg.version || '1.0.0',
+      name: pkg.name,
+      author: displayAuthor,
+      year: year,
+      branch: branch || 'main',
+      repo: repo
+    });
+  } catch {
+    res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString(), branch: 'main', repo: '' });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
@@ -85,49 +124,6 @@ app.listen(PORT, () => {
   console.log(`  API:   http://localhost:${PORT}/api`);
   console.log(`  App:   http://localhost:${PORT}`);
   console.log(`  Env:   ${process.env.NODE_ENV || 'development'}\n`);
-
-  // Endpoint de versión
-  app.get('/api/version', (req, res) => {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-      
-      // Intentar obtener el año del último commit
-      let year = new Date().getFullYear().toString();
-      try {
-        const commitDate = execSync('git log -1 --format=%ai --quiet', { cwd: __dirname, encoding: 'utf8' }).trim();
-        if (commitDate) {
-          year = commitDate.substring(0, 4); // Solo el año
-        }
-      } catch (e) { /* ignore - usa año actual */ }
-      
-      const author = pkg.author || '';
-      const displayAuthor = author.includes(year) ? author : `© ${year} - ${author}`;
-
-      const branch = (() => {
-        try {
-          return require('child_process').execSync('git branch --show-current', { cwd: __dirname, encoding: 'utf8' }).trim();
-        } catch { return ''; }
-      })();
-
-      const repo = (() => {
-        try {
-          const remote = require('child_process').execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8' }).trim();
-          return remote.replace(/\.git$/, '').replace(/^git@/, 'https://').replace(/:(\w)/, '/$1');
-        } catch { return ''; }
-      })();
-
-      res.json({ 
-        version: pkg.version || '1.0.0', 
-        name: pkg.name,
-        author: displayAuthor,
-        year: year,
-        branch: branch || 'main',
-        repo: repo
-      });
-    } catch { 
-      res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString(), branch: 'main', repo: '' }); 
-    }
-  });
 
   // Servicios en background
   if (process.env.NODE_ENV !== 'test') {
