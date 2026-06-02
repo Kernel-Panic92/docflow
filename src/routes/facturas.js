@@ -613,7 +613,11 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.s
       `UPDATE facturas SET soporte_pago=$1, soporte_pago_nombre=$2 WHERE id=$3 RETURNING *`,
       [filename, req.file.originalname, req.params.id]
     );
-    if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Factura no encontrada' }); }
+    if (!rows[0]) {
+      await client.query('ROLLBACK');
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
 
     fs.copyFileSync(req.file.path, filepath);
     fs.unlinkSync(req.file.path);
@@ -624,6 +628,7 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.s
   } catch (err) {
     await client.query('ROLLBACK');
     if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();

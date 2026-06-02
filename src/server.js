@@ -111,7 +111,7 @@ app.use((err, req, res, next) => {
     return res.status(413).json({ error: `Archivo demasiado grande (máximo ${process.env.MAX_FILE_MB || 10}MB)` });
   }
   
-  if (err.name === 'MulterError' || (err.message && err.message.startsWith('Tipo de archivo'))) {
+  if (err.name === 'MulterError' || (err.message && (err.message.startsWith('Tipo de archivo') || err.message.startsWith('Solo se permiten')))) {
     return res.status(400).json({ error: err.message });
   }
   
