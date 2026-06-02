@@ -307,7 +307,6 @@ async function migrate() {
     console.log('\n✅ Todas las migraciones ejecutadas correctamente.');
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
