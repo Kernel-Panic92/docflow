@@ -55,38 +55,41 @@ app.get('/app.js', (req, res) => {
 });
 
 // ─── Endpoint de versión ───────────────────────────────────────────────────────
+const GIT_DIR = path.join(__dirname, '..', '.git');
+
+function readBranch() {
+  try {
+    const head = fs.readFileSync(path.join(GIT_DIR, 'HEAD'), 'utf8').trim();
+    const m = head.match(/^ref:\s*refs\/heads\/(.+)$/);
+    return m ? m[1] : head;
+  } catch { return ''; }
+}
+
+function readRepoUrl() {
+  try {
+    const cfg = fs.readFileSync(path.join(GIT_DIR, 'config'), 'utf8');
+    const m = cfg.match(/\[remote\s+"origin"\].*?\n\s*url\s*=\s*(.+?)\s*[\r\n]/s);
+    if (!m) return '';
+    return m[1].replace(/\.git$/, '').replace(/^git@/, 'https://').replace(/:(\w)/, '/$1');
+  } catch { return ''; }
+}
+
 app.get('/api/version', (req, res) => {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
-
-    let year = new Date().getFullYear().toString();
-    try {
-      const commitDate = require('child_process').execSync('git log -1 --format=%ai --quiet', { cwd: __dirname, encoding: 'utf8' }).trim();
-      if (commitDate) year = commitDate.substring(0, 4);
-    } catch (e) { /* ignore */ }
-
+    const year = new Date().getFullYear().toString();
     const author = pkg.author || '';
     const displayAuthor = author.includes(year) ? author : `© ${year} - ${author}`;
-
-    const branch = (() => {
-      try { return require('child_process').execSync('git branch --show-current', { cwd: __dirname, encoding: 'utf8' }).trim(); }
-      catch { return ''; }
-    })();
-
-    const repo = (() => {
-      try {
-        const remote = require('child_process').execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8' }).trim();
-        return remote.replace(/\.git$/, '').replace(/^git@/, 'https://').replace(/:(\w)/, '/$1');
-      } catch { return ''; }
-    })();
+    const branch = readBranch();
+    const repo = readRepoUrl();
 
     res.json({
       version: pkg.version || '1.0.0',
       name: pkg.name,
       author: displayAuthor,
-      year: year,
+      year,
       branch: branch || 'main',
-      repo: repo
+      repo
     });
   } catch {
     res.json({ version: '1.0.0', name: 'docflow', author: '', year: new Date().getFullYear().toString(), branch: 'main', repo: '' });
