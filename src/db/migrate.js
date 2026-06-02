@@ -176,13 +176,14 @@ ON CONFLICT (clave) DO NOTHING`,
 
 // ─── 013: Sesiones (para logout y gestión) ───────────────────────────────────
 `CREATE TABLE IF NOT EXISTS sesiones (
-  token      VARCHAR(100) PRIMARY KEY,
+  token      TEXT PRIMARY KEY,
   usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   expira     TIMESTAMPTZ NOT NULL,
   ip         VARCHAR(50),
   user_agent TEXT,
   creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`,
+`ALTER TABLE IF EXISTS sesiones ALTER COLUMN token TYPE TEXT`,
 
 // ─── 014: Log de accesos (auditoría login) ───────────────────────────────────
 `CREATE TABLE IF NOT EXISTS log_accesos (
