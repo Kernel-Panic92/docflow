@@ -57,7 +57,7 @@ app.get('/app.js', (req, res) => {
 // ─── Endpoint de versión ───────────────────────────────────────────────────────
 app.get('/api/version', (req, res) => {
   try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
 
     let year = new Date().getFullYear().toString();
     try {
