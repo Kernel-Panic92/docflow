@@ -200,7 +200,7 @@ router.get('/smtp/test', requireRol('admin'), async (req, res) => {
     await transporter.sendMail({
       from: fromAddr,
       to: user,
-      subject: 'Prueba SMTP - Vitamar Docs',
+      subject: 'Prueba SMTP - DocFlow',
       text: 'Esta es una prueba de configuracion SMTP.\n\nSi recibes este correo, la configuracion es correcta.',
     });
     

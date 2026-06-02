@@ -37,7 +37,7 @@ app.use('/api/centros',        require('./routes/centros'));
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    app: 'Vitamar Docs',
+    app: 'DocFlow',
     version: '1.0.0',
     env: process.env.NODE_ENV,
     ts: new Date().toISOString(),
@@ -118,12 +118,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message });
 });
 
-// ─── Arranque ─────────────────────────────────────────────────────────────────
+// ─── Validaciones de arranque ─────────────────────────────────────────────────
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+  console.error('\n  ERROR: JWT_SECRET debe tener al menos 16 caracteres');
+  process.exit(1);
+}
+
 const PORT = parseInt(process.env.PORT || '3100');
 
 app.listen(PORT, () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
-  console.log(`║   Vitamar Docs  —  puerto ${PORT}           ║`);
+  console.log(`║   DocFlow  —  puerto ${PORT.toString().padEnd(5)}           ║`);
   console.log(`╚══════════════════════════════════════════╝`);
   console.log(`  API:   http://localhost:${PORT}/api`);
   console.log(`  App:   http://localhost:${PORT}`);

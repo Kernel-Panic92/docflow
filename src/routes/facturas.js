@@ -69,8 +69,8 @@ router.get('/badge-stats', requireRol('admin','contador','tesorero','comprador',
     const urgenteRes = await db.query(
       `SELECT COUNT(*) as total FROM facturas f 
        WHERE f.estado IN ('recibida','aprobada') 
-       AND f.fecha_limite_pago IS NOT NULL
-       AND f.fecha_limite_pago <= $1`,
+       AND f.limite_pago IS NOT NULL
+       AND f.limite_pago <= $1`,
       [tresDias]
     );
     
@@ -594,7 +594,8 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('
   const filename = `soporte_${req.params.id}_${Date.now()}${ext}`;
   const filepath = path.join(uploadDir, filename);
 
-  fs.writeFileSync(filepath, req.file.buffer);
+  fs.copyFileSync(req.file.path, filepath);
+  fs.unlinkSync(req.file.path);
 
   const client = await db.getClient();
   try {

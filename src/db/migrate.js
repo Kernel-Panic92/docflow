@@ -124,7 +124,8 @@ const migrations = [
                   'recibida','asignada','revision_iniciada',
                   'aprobada','rechazada','reenviada',
                   'centro_costos_asignado','causada','pagada',
-                  'escalacion_nivel1','escalacion_nivel2','dian_tacita','comentario'
+                  'escalacion_nivel1','escalacion_nivel2','dian_tacita','comentario',
+                  'soporte_adjuntado'
                 )),
   comentario  TEXT,
   metadata    JSONB,
@@ -161,7 +162,7 @@ const migrations = [
   ('horas_escalacion_nivel2', '48',   'Horas antes de escalar a gerencia'),
   ('horas_dian_tacita',       '48',   'Horas para aceptación tácita DIAN'),
   ('email_notificaciones',    '',     'Correo para copia de notificaciones'),
-  ('empresa_nombre',          'Vitamar', 'Nombre de la empresa'),
+  ('empresa_nombre',          'Mi Empresa', 'Nombre de la empresa'),
   ('moneda',                  'COP',  'Moneda por defecto')
 ON CONFLICT (clave) DO NOTHING`,
 
