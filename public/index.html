@@ -43,8 +43,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 #app-screen.show{display:flex}
 
 /* ── SIDEBAR ── */
-.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;height:100vh;z-index:10;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;height:100vh;z-index:10;transition:width .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1)}
 .sidebar.open{transform:translateX(0)}
+.sidebar-toggle{position:absolute;top:20px;right:-14px;width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--muted);z-index:11;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.sidebar-toggle:hover{color:var(--text);border-color:var(--accent)}
+.sidebar.collapsed{width:68px}
+.sidebar.collapsed .logo{padding:0 0 16px;text-align:center}
+.sidebar.collapsed .logo span{display:none}
+.sidebar.collapsed .user-info,.sidebar.collapsed .role-badge{display:none}
+.sidebar.collapsed .nav-item{justify-content:center;padding:11px 0}
+.sidebar.collapsed .nav-item span:not(.nav-icon){display:none}
+.sidebar.collapsed .nav-icon{font-size:20px;width:auto}
+.sidebar.collapsed .sidebar-footer{padding:12px 8px}
+.sidebar.collapsed .btn-logout{justify-content:center;padding:9px 0}
+.sidebar.collapsed .btn-logout span:last-child{display:none}
+.sidebar.collapsed .btn-logout .nav-icon{font-size:18px}
+.sidebar.collapsed .sidebar-footer>div{display:none}
+.sidebar.collapsed~.main{margin-left:68px}
 .logo{padding:0 24px 16px;font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:-.2px}
 .logo span{color:var(--accent)}
 .user-info{margin:0 16px 20px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
@@ -316,6 +331,7 @@ input[type=password]{letter-spacing:2px}
   <div class="mob-overlay" id="mob-overlay" onclick="closeSidebar()"></div>
 
   <div class="sidebar" id="sidebar">
+    <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebarCollapse()">◀</div>
     <div class="logo" id="header-logo">DocFlow <span>DOCS</span></div>
     <div class="user-info">
       <div class="user-name" id="u-name">—</div>
@@ -360,6 +376,20 @@ input[type=password]{letter-spacing:2px}
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
+<script src="/js/utils/api.js"></script>
+<script src="/js/utils/helpers.js"></script>
+<script src="/js/components/modals.js"></script>
+<script src="/js/modules/auth.js"></script>
+<script src="/js/modules/dashboard.js"></script>
+<script src="/js/modules/facturas.js"></script>
+<script src="/js/modules/pendientes.js"></script>
+<script src="/js/modules/soporte.js"></script>
+<script src="/js/modules/categorias.js"></script>
+<script src="/js/modules/areas.js"></script>
+<script src="/js/modules/usuarios.js"></script>
+<script src="/js/modules/audit.js"></script>
+<script src="/js/modules/backup.js"></script>
+<script src="/js/modules/config.js"></script>
 <script src="/app.js"></script>
 
 </body>
