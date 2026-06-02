@@ -126,7 +126,10 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
 
 const PORT = parseInt(process.env.PORT || '3100');
 
-app.listen(PORT, () => {
+// ─── Arranque con migraciones ────────────────────────────────────────────────
+(async () => {
+  await require('./db/migrate')();
+  app.listen(PORT, () => {
   console.log(`\n╔══════════════════════════════════════════╗`);
   console.log(`║   DocFlow  —  puerto ${PORT.toString().padEnd(5)}           ║`);
   console.log(`╚══════════════════════════════════════════╝`);
@@ -142,6 +145,10 @@ app.listen(PORT, () => {
     iniciarCronJobs();
     iniciarServicioImap();
   }
+});
+})().catch(err => {
+  console.error('\n  ERROR al iniciar:', err.message);
+  process.exit(1);
 });
 
 module.exports = app;

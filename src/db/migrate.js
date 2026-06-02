@@ -311,7 +311,4 @@ async function migrate() {
   }
 }
 
-migrate().catch(err => {
-  console.error('\n❌ Migración fallida:', err.message);
-  process.exit(1);
-});
+module.exports = migrate;
