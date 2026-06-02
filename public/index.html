@@ -324,7 +324,7 @@ input[type=password]{letter-spacing:2px}
     </div>
     <nav class="nav-menu" id="nav"></nav>
     <div class="sidebar-footer">
-      <button class="btn-logout" onclick="doLogout()"><span class="nav-icon">⏻</span><span>Cerrar sesión</span></button>
+      <button class="btn-logout" onclick="showLogoutConfirm()"><span class="nav-icon">⏻</span><span>Cerrar sesión</span></button>
       <div style="margin-top:10px;text-align:center;font-size:10px;color:var(--muted);line-height:1.6;opacity:0.7;">
         <div id="app-version"></div>
         <div id="app-repo"></div>
@@ -338,6 +338,19 @@ input[type=password]{letter-spacing:2px}
       <button class="main-icon-btn" onclick="toggleTheme()" title="Cambiar tema" id="theme-btn">🌙</button>
     </div>
     <div id="content"></div>
+  </div>
+</div>
+
+<!-- Logout confirm modal -->
+<div id="logout-modal" class="modal-overlay" onclick="if(event.target===this)closeLogoutConfirm()">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <div style="font-size:44px;margin-bottom:8px">👋</div>
+    <div class="modal-title" style="font-size:20px;">Cerrar sesión</div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:8px">¿Estás seguro de que deseas cerrar tu sesión?</p>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="closeLogoutConfirm()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmLogout()">Cerrar sesión</button>
+    </div>
   </div>
 </div>
 

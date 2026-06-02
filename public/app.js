@@ -124,6 +124,9 @@ async function doLogin(){
   }catch(ex){errEl.textContent=ex.message;errEl.classList.add('show')}
 }
 function doLogout(){localStorage.removeItem('vd_t');localStorage.removeItem('vd_u');S.token=null;S.usuario=null;$('app-screen').classList.remove('show');$('login-screen').style.display='flex'}
+function showLogoutConfirm(){$('logout-modal').classList.add('open')}
+function closeLogoutConfirm(){$('logout-modal').classList.remove('open')}
+function confirmLogout(){closeLogoutConfirm();doLogout()}
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('login-screen').style.display!=='none')doLogin()});
 
 function showForgot(e){e.preventDefault();$('forgot-modal').classList.add('open')}
