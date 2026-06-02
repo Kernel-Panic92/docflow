@@ -615,7 +615,7 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.s
     );
     if (!rows[0]) {
       await client.query('ROLLBACK');
-      fs.unlinkSync(req.file.path);
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
 
