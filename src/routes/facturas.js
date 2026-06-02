@@ -606,9 +606,6 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.s
   const filename = `soporte_${req.params.id}_${Date.now()}${ext}`;
   const filepath = path.join(uploadDir, filename);
 
-  fs.copyFileSync(req.file.path, filepath);
-  fs.unlinkSync(req.file.path);
-
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
@@ -618,12 +615,15 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.s
     );
     if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Factura no encontrada' }); }
 
+    fs.copyFileSync(req.file.path, filepath);
+    fs.unlinkSync(req.file.path);
+
     await registrarEvento(client, req.params.id, req.usuario.id, 'soporte_adjuntado', `Soporte de pago: ${req.file.originalname}`);
     await client.query('COMMIT');
     res.json(rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
-    fs.unlinkSync(filepath);
+    if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();

@@ -111,6 +111,10 @@ app.use((err, req, res, next) => {
     return res.status(413).json({ error: `Archivo demasiado grande (máximo ${process.env.MAX_FILE_MB || 10}MB)` });
   }
   
+  if (err.name === 'MulterError' || (err.message && err.message.startsWith('Tipo de archivo'))) {
+    return res.status(400).json({ error: err.message });
+  }
+  
   if (err.name === 'UnauthorizedError') {
     return res.status(401).json({ error: 'Token inválido o expirado' });
   }
