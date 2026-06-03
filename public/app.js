@@ -1104,6 +1104,27 @@ async function cambiarCat(facturaId,catId){
 if(S.token&&S.usuario){showApp()}else{$('app-screen').classList.remove('show');$('login-screen').style.display='flex'}
 setInterval(refreshBadges,60000);
 
+// ─── Version polling (new deploy detection) ──────────────────────────────
+let _versionBanner=null;
+function _mostrarBannerVersion(msg){
+  if(_versionBanner)return;
+  _versionBanner=document.createElement('div');
+  _versionBanner.id='version-banner';
+  _versionBanner.innerHTML=`<span>${msg}</span><button onclick="recargarApp()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--font-body)">Recargar</button>`;
+  Object.assign(_versionBanner.style,{position:'fixed',top:0,left:0,right:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',gap:12,padding:'10px 16px',fontSize:13,fontWeight:500,fontFamily:'var(--font-body)',background:'rgba(79,142,247,.15)',borderBottom:'1px solid var(--accent)',color:'var(--accent)',backdropFilter:'blur(8px)'});
+  document.body.appendChild(_versionBanner);
+  document.body.style.paddingTop='44px';
+}
+function recargarApp(){localStorage.removeItem('vd_last_page');location.reload()}
+function _pollVersion(){
+  fetch('/api/version').then(r=>r.json()).then(d=>{
+    if(window._appVersion&&d.version&&d.version!==window._appVersion){
+      _mostrarBannerVersion('📦 Nueva versión disponible: '+d.version+(d.branch?' ['+d.branch+']':'')+' (actual: '+window._appVersion+(window._appBranch?' ['+window._appBranch+']':'')+')');
+    }
+  }).catch(()=>{});
+}
+setInterval(_pollVersion,60000);
+
 async function cargarConfigGlobal(){
   try{
     const cfg=await api('GET','/configuracion');

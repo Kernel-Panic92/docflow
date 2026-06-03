@@ -62,6 +62,8 @@ function showApp(){
     if(cr&&d.author)cr.textContent=d.author;
     const repoEl=document.getElementById('app-repo');
     if(repoEl&&d.repo)repoEl.innerHTML='<a href="'+d.repo+'" target="_blank" style="color:var(--accent);text-decoration:none;">GitHub</a>';
+    window._appVersion = d.version || '';
+    window._appBranch = d.branch || '';
   }).catch(()=>{});
   if(S.empresaLogo){
     $('header-logo').innerHTML='<img src="'+S.empresaLogo+'" style="height:32px;border-radius:6px"/>';

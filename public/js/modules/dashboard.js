@@ -66,10 +66,11 @@ async function rDash(){
     stats+=stat('Valor mes',fmt(r.valor_mes),'var(--warning)','yellow');
   }
   const rc=d.recientes||[];
+  const storageHtml=await cargarStorage();
   $('content').innerHTML=`
     <div class="page-header"><div><div class="page-title">Dashboard</div><div class="page-sub">${esTesorero?'Gestión de pagos':esComprador?'Facturas por aprobar':'Resumen general'}</div></div></div>
     ${!esComprador?sync.bar:''}
-    <div class="stats-row">${stats}</div>
+    <div class="stats-row">${stats}${storageHtml}</div>
     <div class="tbl">
       <div class="tbl-head"><div class="tbl-title">Actividad reciente</div><button class="btn btn-primary btn-sm" onclick="mNuevaF()">+ Nueva</button></div>
       <table><thead><tr><th># Factura</th><th>Proveedor</th><th>Categoría</th><th>Valor</th><th>Estado</th><th>Recibida</th><th></th></tr></thead>
@@ -89,7 +90,24 @@ async function rDash(){
   refreshBadges();
   if(esAdmin||esTesorero) renderCharts();
 }
-function stat(l,v,c){return`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value ${c}">${v}</div></div>`}
+function stat(l,v,c,s){return`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value ${c}">${v}</div>${s?`<div class="stat-s">${s}</div>`:''}</div>`}
+
+async function cargarStorage(){
+  try{
+    const s=await api('GET','/dashboard/storage');
+    if(s.error||!s.total_gb)return '';
+    const pct=s.percent_used;
+    const barColor=pct>90?'var(--danger)':pct>75?'var(--warning)':'var(--success)';
+    return `<div class="stat-card" style="grid-column:span 1">
+      <div class="stat-label">ALMACENAMIENTO</div>
+      <div class="stat-value" style="font-size:18px;font-weight:700;color:${barColor}">${s.used_gb} GB <span style="font-size:13px;font-weight:400;color:var(--muted)">/ ${s.total_gb} GB</span></div>
+      <div style="margin-top:8px;background:var(--surface2);border-radius:6px;height:6px;overflow:hidden">
+        <div style="background:${barColor};height:100%;width:${Math.min(pct,100)}%;transition:width .3s"></div>
+      </div>
+      <div class="stat-s">${s.avail_gb} GB libres &middot; ${pct}% usado</div>
+    </div>`;
+  }catch{return''}
+}
 
 async function renderCharts(){
   try{

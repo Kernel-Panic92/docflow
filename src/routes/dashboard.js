@@ -197,4 +197,21 @@ router.get('/charts', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/storage
+router.get('/storage', async (req, res) => {
+  try {
+    const { execSync } = require('child_process');
+    const output = execSync('df -BG .').toString().trim();
+    const lines = output.split('\n');
+    const parts = lines[1].split(/\s+/);
+    const total = parseInt(parts[1]) || 0;
+    const used  = parseInt(parts[2]) || 0;
+    const avail = parseInt(parts[3]) || 0;
+    const pct   = parseInt(parts[4]) || 0;
+    res.json({ total_gb: total, used_gb: used, avail_gb: avail, percent_used: pct });
+  } catch {
+    res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0, error: true });
+  }
+});
+
 module.exports = router;
