@@ -34,7 +34,7 @@ function destruirCharts() {
 }
 
 async function rDash(){
-  const d=await api('GET','/dashboard');
+  const d=await api('GET','/dashboard?_t='+Date.now());
   const r=d.resumen;
   const rol=S.usuario?.rol;
   const esComprador=rol==='comprador';

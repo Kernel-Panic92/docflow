@@ -109,6 +109,9 @@ router.get('/', async (req, res) => {
       storage = { total_gb: Math.max(total,0), used_gb: Math.max(used,0), avail_gb: Math.max(avail,0), percent_used: Math.min(pct,100) };
     } catch {}
 
+    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma','no-cache');
+    res.setHeader('Expires','0');
     res.json({
       rol,
       resumen,
