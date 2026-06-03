@@ -124,7 +124,7 @@ async function renderCharts(){
     crearOActualizar('chart-mes',{
       type:'line',
       data:{labels:mesesLabels,datasets:[{label:'Facturas',data:mesesCounts,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.1)',fill:true,tension:0.4}]},
-      options:{responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
+      options:{responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
     const estados=data.por_estado||[];
@@ -132,21 +132,21 @@ async function renderCharts(){
     crearOActualizar('chart-estado',{
       type:'doughnut',
       data:{labels:estados.map(e=>e.estado),datasets:[{data:estados.map(e=>e.total),backgroundColor:estados.map(e=>estadoColors[e.estado]||'#7a85a0')}]},
-      options:{responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{position:'bottom',labels:{color:textColor}}}}
+      options:{responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{position:'bottom',labels:{color:textColor}}}}
     });
 
     const provs=data.por_proveedor||[];
     crearOActualizar('chart-proveedor',{
       type:'bar',
       data:{labels:provs.map(p=>p.nombre),datasets:[{label:'Facturas',data:provs.map(p=>p.total),backgroundColor:'#4f8ef7',borderRadius:6}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},y:{grid:{color:gridColor},ticks:{color:textColor}}}}
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},y:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
     const cats=data.por_categoria||[];
     crearOActualizar('chart-categoria',{
       type:'bar',
       data:{labels:cats.map(c=>c.nombre),datasets:[{label:'Facturas',data:cats.map(c=>c.total),backgroundColor:cats.map(c=>c.color||'#4f8ef7'),borderRadius:6}]},
-      options:{responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
+      options:{responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
     const valPorMes=data.valor_por_mes||[];
@@ -155,14 +155,14 @@ async function renderCharts(){
     crearOActualizar('chart-valor',{
       type:'bar',
       data:{labels:valLabels,datasets:[{label:'Valor',data:valData,backgroundColor:'#34D399',borderRadius:6}]},
-      options:{responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+Number(ctx.raw).toLocaleString('es-CO')}}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor,callback:v=>'$'+Number(v).toLocaleString('es-CO')}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
+      options:{responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+Number(ctx.raw).toLocaleString('es-CO')}}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor,callback:v=>'$'+Number(v).toLocaleString('es-CO')}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
     const areas=data.por_area||[];
     crearOActualizar('chart-area',{
       type:'bar',
       data:{labels:areas.map(a=>a.nombre),datasets:[{label:'Facturas',data:areas.map(a=>a.total),backgroundColor:'#A78BFA',borderRadius:6}]},
-      options:{responsive:true,maintainAspectRatio:true,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
+      options:{responsive:true,maintainAspectRatio:false,resizeDelay:500,animation:{duration:0},plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
   }catch(e){console.log('Chart error:',e.message)}
