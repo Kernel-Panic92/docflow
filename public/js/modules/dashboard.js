@@ -35,7 +35,6 @@ function crearOActualizar(id, config) {
     _tamCanvas(ctx);
     config.options.responsive = false;
     _charts[id] = new Chart(ctx, config);
-    _charts[id].resize();
   }
 }
 let _refreshInt = null;
@@ -45,12 +44,15 @@ function _iniciarRefresh() {
     Object.keys(_charts).forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (r.bottom > 0 && r.top < window.innerHeight) {
-        _charts[id].update('none');
-      }
+      try{
+        const ctx = el.getContext('2d');
+        ctx.globalAlpha = 0.999;
+        ctx.fillRect(0,0,1,1);
+        ctx.globalAlpha = 1;
+        _charts[id].render();
+      }catch(e){}
     });
-  }, 3000);
+  }, 2000);
 }
 
 function _detenerRefresh() {
