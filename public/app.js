@@ -303,14 +303,19 @@ function stopSyncPoll(){
 
 // ─── FACTURAS ────────────────────────────────────────────────────────────────
 let fFiltro='todas';
-function getFiltrosKey(){return'vd_f_'+S.usuario?.id}
-let fBusqueda=JSON.parse(localStorage.getItem(getFiltrosKey())||'{}');
-// Ensure date fields are never undefined
-fBusqueda.fecha_desde=fBusqueda.fecha_desde||'';
-fBusqueda.fecha_hasta=fBusqueda.fecha_hasta||'';
-function initFiltros(){const k=getFiltrosKey();const f=JSON.parse(localStorage.getItem(k)||'{}');f.fecha_desde=f.fecha_desde||'';f.fecha_hasta=f.fecha_hasta||'';if(f.categoria_id||f.proveedor_id)fBusqueda=f}
+function getFiltrosKey(){return'vd_f_'+(S?.usuario?.id||'0')}
+let fBusqueda=null;
+function initFiltros(){
+  if(!S?.usuario?.id)return;
+  const k=getFiltrosKey();
+  const f=JSON.parse(localStorage.getItem(k)||'{}');
+  f.fecha_desde=f.fecha_desde||'';
+  f.fecha_hasta=f.fecha_hasta||'';
+  fBusqueda=f;
+}
 
 async function rFacturas(filtro){
+  if(!fBusqueda)initFiltros();
   if(filtro!==undefined)fFiltro=filtro;
   
   // Construir query params
