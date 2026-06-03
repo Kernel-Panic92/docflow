@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
+const { execSync } = require('child_process');
 
 router.use(authMiddleware);
 
@@ -200,17 +201,29 @@ router.get('/charts', async (req, res) => {
 // GET /api/dashboard/storage
 router.get('/storage', async (req, res) => {
   try {
-    const { execSync } = require('child_process');
-    const output = execSync('df -BG .').toString().trim();
-    const lines = output.split('\n');
-    const parts = lines[1].split(/\s+/);
-    const total = parseInt(parts[1]) || 0;
-    const used  = parseInt(parts[2]) || 0;
-    const avail = parseInt(parts[3]) || 0;
-    const pct   = parseInt(parts[4]) || 0;
-    res.json({ total_gb: total, used_gb: used, avail_gb: avail, percent_used: pct });
+    let total=0, used=0, avail=0, pct=0;
+    try {
+      const output = execSync('df -BG --total .', { timeout: 5000 }).toString().trim();
+      const lines = output.split('\n');
+      const last = lines.filter(l=>l.startsWith('total'))[0] || lines[lines.length-2] || lines[lines.length-1];
+      const parts = last.split(/\s+/);
+      total = parseInt(parts[1]) || 0;
+      used  = parseInt(parts[2]) || 0;
+      avail = parseInt(parts[3]) || 0;
+      pct   = parseInt(parts[4]) || 0;
+    } catch {
+      // fallback: fs.statfsSync
+      const fs = require('fs');
+      const st = fs.statfsSync(process.cwd());
+      const bsize = st.bsize || 4096;
+      total = Math.floor((st.blocks * bsize) / (1024*1024*1024));
+      avail = Math.floor((st.bavail * bsize) / (1024*1024*1024));
+      used  = total - Math.floor((st.bfree * bsize) / (1024*1024*1024));
+      pct   = total > 0 ? Math.round(used / total * 100) : 0;
+    }
+    res.json({ total_gb: Math.max(total,0), used_gb: Math.max(used,0), avail_gb: Math.max(avail,0), percent_used: Math.min(pct,100) });
   } catch {
-    res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0, error: true });
+    res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 });
   }
 });
 
