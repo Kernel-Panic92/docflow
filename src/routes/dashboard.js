@@ -1,9 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const execAsync = promisify(exec);
 
 router.use(authMiddleware);
 
@@ -99,12 +96,29 @@ router.get('/', async (req, res) => {
       if (row.estado === 'rechazada') resumen.rechazadas = row.total;
     }
 
+    // Storage (non-blocking)
+    let storage = { total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 };
+    try {
+      const { exec } = require('child_process');
+      const { stdout } = await new Promise((resolve, reject) => {
+        exec('df -BG .', { timeout: 3000 }, (e, o) => e ? reject(e) : resolve({ stdout: o }));
+      });
+      const parts = stdout.trim().split('\n')[1].split(/\s+/);
+      storage = {
+        total_gb: parseInt(parts[1]) || 0,
+        used_gb: parseInt(parts[2]) || 0,
+        avail_gb: parseInt(parts[3]) || 0,
+        percent_used: parseInt(parts[4]) || 0,
+      };
+    } catch {}
+
     res.json({
       rol,
       resumen,
       por_categoria: porCategoria.rows,
       vencimientos: vencimientos.rows,
       recientes: recientes.rows,
+      storage,
     });
 
   } catch (err) {
@@ -197,35 +211,6 @@ router.get('/charts', async (req, res) => {
   } catch (err) {
     console.error('[dashboard/charts]', err.message);
     res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/dashboard/storage
-router.get('/storage', async (req, res) => {
-  try {
-    const { stdout } = await execAsync('df -BG .', { timeout: 3000 });
-    const lines = stdout.trim().split('\n');
-    if (lines.length < 2) throw new Error('no output');
-    const parts = lines[1].split(/\s+/);
-    const total = parseInt(parts[1]) || 0;
-    const used  = parseInt(parts[2]) || 0;
-    const avail = parseInt(parts[3]) || 0;
-    const pct   = parseInt(parts[4]) || 0;
-    return res.json({ total_gb: total, used_gb: used, avail_gb: avail, percent_used: pct });
-  } catch {
-    // fallback
-    try {
-      const fs2 = require('fs');
-      const st = fs2.statfsSync(process.cwd());
-      const bsize = Number(st.bsize) || 4096;
-      const total = Math.floor(Number(st.blocks) * bsize / (1024*1024*1024));
-      const avail = Math.floor(Number(st.bavail) * bsize / (1024*1024*1024));
-      const used  = total - Math.floor(Number(st.bfree) * bsize / (1024*1024*1024));
-      const pct   = total > 0 ? Math.round(used / total * 100) : 0;
-      return res.json({ total_gb: Math.max(total,0), used_gb: Math.max(used,0), avail_gb: Math.max(avail,0), percent_used: Math.min(pct,100) });
-    } catch {
-      res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 });
-    }
   }
 });
 
