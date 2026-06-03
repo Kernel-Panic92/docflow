@@ -16,6 +16,13 @@ function cargarChartJs() {
   });
 }
 
+function _tamCanvas(ctx) {
+  const p = ctx.parentNode;
+  const dpr = window.devicePixelRatio || 1;
+  const w = p.clientWidth, h = p.clientHeight;
+  if (w > 0) { ctx.width = w * dpr; ctx.style.width = w + 'px'; }
+  if (h > 0) { ctx.height = h * dpr; ctx.style.height = h + 'px'; }
+}
 function crearOActualizar(id, config) {
   if (!config.options) config.options = {};
   if (_charts[id]) {
@@ -25,11 +32,32 @@ function crearOActualizar(id, config) {
   } else {
     const ctx = document.getElementById(id);
     if (!ctx) return;
+    _tamCanvas(ctx);
+    config.options.responsive = false;
     _charts[id] = new Chart(ctx, config);
+    _charts[id].resize();
   }
 }
+let _refreshInt = null;
+function _iniciarRefresh() {
+  if (_refreshInt) return;
+  _refreshInt = setInterval(() => {
+    Object.keys(_charts).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.bottom > 0 && r.top < window.innerHeight) {
+        _charts[id].update('none');
+      }
+    });
+  }, 3000);
+}
 
+function _detenerRefresh() {
+  if (_refreshInt) { clearInterval(_refreshInt); _refreshInt = null; }
+}
 function destruirCharts() {
+  _detenerRefresh();
   Object.keys(_charts).forEach(k => { _charts[k].destroy(); delete _charts[k]; });
 }
 
@@ -165,6 +193,7 @@ async function renderCharts(){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
+    _iniciarRefresh();
   }catch(e){console.log('Chart error:',e.message)}
 }
 
