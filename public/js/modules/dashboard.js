@@ -79,12 +79,12 @@ async function rDash(){
     ${esAdmin||esTesorero?`
     <div style="margin-top:28px"><div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px">📊 Gráficos</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px">
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Mes</div><canvas id="chart-mes" height="200"></canvas></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Distribución por Estado</div><canvas id="chart-estado" height="200"></canvas></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Top Proveedores</div><canvas id="chart-proveedor" height="200"></canvas></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Categoría</div><canvas id="chart-categoria" height="200"></canvas></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Valor por Mes</div><canvas id="chart-valor" height="200"></canvas></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Área</div><canvas id="chart-area" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Mes</div><canvas id="chart-mes" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Distribución por Estado</div><canvas id="chart-estado" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Top Proveedores</div><canvas id="chart-proveedor" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Categoría</div><canvas id="chart-categoria" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Valor por Mes</div><canvas id="chart-valor" height="200"></canvas></div>
+        <div class="tbl" style="padding:20px;overflow:hidden"><div style="font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Área</div><canvas id="chart-area" height="200"></canvas></div>
       </div>
     </div>`:''}`;
   refreshBadges();
