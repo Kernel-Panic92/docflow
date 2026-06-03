@@ -2,6 +2,18 @@
 
 let _chartJsLoaded = false;
 const _charts = {};
+let _chartObserver = null;
+function _observeChart(id) {
+  if (!_chartObserver) {
+    _chartObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting && _charts[e.target.id]) _charts[e.target.id].draw();
+      });
+    }, { threshold: 0.1 });
+  }
+  const el = document.getElementById(id);
+  if (el) _chartObserver.observe(el);
+}
 
 function cargarChartJs() {
   if (_chartJsLoaded) return Promise.resolve();
@@ -26,6 +38,7 @@ function crearOActualizar(id, config) {
     const ctx = document.getElementById(id);
     if (!ctx) return;
     _charts[id] = new Chart(ctx, config);
+    _observeChart(id);
   }
 }
 
