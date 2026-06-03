@@ -276,7 +276,7 @@ async function checkSyncStatus(){
         </div>
       </div>`}}
 }
-let syncPollInterval=null;
+syncPollInterval=null;
 async function iniciarSync(){
   try{
     await api('POST','/sync');
@@ -302,9 +302,9 @@ function stopSyncPoll(){
 }
 
 // ─── FACTURAS ────────────────────────────────────────────────────────────────
-let fFiltro='todas';
+fFiltro='todas';
 function getFiltrosKey(){return'vd_f_'+(S?.usuario?.id||'0')}
-let fBusqueda=null;
+fBusqueda=null;
 function initFiltros(){
   if(!S?.usuario?.id)return;
   const k=getFiltrosKey();
@@ -431,8 +431,8 @@ function limpiarFiltrosF(){
 }
 
 // ─── PENDIENTES ──────────────────────────────────────────────────────────────
-let pendFiltro='todas';
-let pendBusqueda='';
+pendFiltro='todas';
+pendBusqueda='';
 async function rPend(){
   const savedSearch=pendBusqueda;
   let savedCursorPos=0;
@@ -528,7 +528,7 @@ function renderItem(f){
 }
 
 // ─── CAUSACIÓN ───────────────────────────────────────────────────────────────
-let causBusqueda='';
+causBusqueda='';
 async function rCaus(){
   causBusqueda=$('caus-buscar')?.value||'';
   const params=new URLSearchParams();
@@ -552,7 +552,7 @@ async function rCaus(){
 }
 
 // ─── POR PAGAR ───────────────────────────────────────────────────────────
-let porPagarBusqueda='';
+porPagarBusqueda='';
 async function rPorPagar(){
   porPagarBusqueda=$('porpagar-buscar')?.value||'';
   const params=new URLSearchParams();
@@ -776,7 +776,7 @@ function mPagar(id){
 }
 
 // ─── CATEGORÍAS ─────────────────────────────────────────────────────────────
-let catExp=null;
+catExp=null;
 async function rCats(){
   S.areas=await api('GET','/areas');S.cats=await api('GET','/categorias');
   $('content').innerHTML=`<div class="page-header"><div><div class="page-title">Categorías</div><div class="page-sub">Tipos de compra y flujo de aprobación</div></div><button class="btn btn-primary" onclick="mCat()">+ Nueva</button></div><div id="clist"></div>`;
