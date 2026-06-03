@@ -1,7 +1,9 @@
 const router = require('express').Router();
 const db = require('../db');
 const { authMiddleware } = require('../middleware/auth');
-const fs = require('fs');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 router.use(authMiddleware);
 
@@ -201,19 +203,29 @@ router.get('/charts', async (req, res) => {
 // GET /api/dashboard/storage
 router.get('/storage', async (req, res) => {
   try {
-    const st = fs.statfsSync(process.cwd());
-    const bsize = Number(st.bsize) || 4096;
-    const totalBytes = Number(st.blocks) * bsize;
-    const freeBytes  = Number(st.bavail) * bsize;
-    const usedBytes  = totalBytes - Number(st.bfree) * bsize;
-    const total = Math.floor(totalBytes / (1024*1024*1024));
-    const used  = Math.floor(usedBytes  / (1024*1024*1024));
-    const avail = Math.floor(freeBytes  / (1024*1024*1024));
-    const pct   = total > 0 ? Math.round(used / total * 100) : 0;
-    res.json({ total_gb: total, used_gb: used, avail_gb: avail, percent_used: pct });
-  } catch (e) {
-    console.error('[storage]', e.message);
-    res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 });
+    const { stdout } = await execAsync('df -BG .', { timeout: 3000 });
+    const lines = stdout.trim().split('\n');
+    if (lines.length < 2) throw new Error('no output');
+    const parts = lines[1].split(/\s+/);
+    const total = parseInt(parts[1]) || 0;
+    const used  = parseInt(parts[2]) || 0;
+    const avail = parseInt(parts[3]) || 0;
+    const pct   = parseInt(parts[4]) || 0;
+    return res.json({ total_gb: total, used_gb: used, avail_gb: avail, percent_used: pct });
+  } catch {
+    // fallback
+    try {
+      const fs2 = require('fs');
+      const st = fs2.statfsSync(process.cwd());
+      const bsize = Number(st.bsize) || 4096;
+      const total = Math.floor(Number(st.blocks) * bsize / (1024*1024*1024));
+      const avail = Math.floor(Number(st.bavail) * bsize / (1024*1024*1024));
+      const used  = total - Math.floor(Number(st.bfree) * bsize / (1024*1024*1024));
+      const pct   = total > 0 ? Math.round(used / total * 100) : 0;
+      return res.json({ total_gb: Math.max(total,0), used_gb: Math.max(used,0), avail_gb: Math.max(avail,0), percent_used: Math.min(pct,100) });
+    } catch {
+      res.json({ total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 });
+    }
   }
 });
 
