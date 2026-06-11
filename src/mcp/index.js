@@ -49,6 +49,52 @@ const TOOLS = [
     name: 'estadisticas',
     description: 'Estadísticas generales del sistema documental.',
     inputSchema: { type: 'object', properties: {} }
+  },
+  {
+    name: 'aprobar_factura',
+    description: 'Aprueba una factura (cambia estado a aprobada).',
+    inputSchema: {
+      type: 'object', properties: {
+        facturaId: { type: 'string' }, observaciones: { type: 'string' }
+      }, required: ['facturaId']
+    }
+  },
+  {
+    name: 'rechazar_factura',
+    description: 'Rechaza una factura con motivo.',
+    inputSchema: {
+      type: 'object', properties: {
+        facturaId: { type: 'string' }, motivo: { type: 'string' }
+      }, required: ['facturaId', 'motivo']
+    }
+  },
+  {
+    name: 'historial_eventos',
+    description: 'Obtiene el historial de eventos de una factura.',
+    inputSchema: {
+      type: 'object', properties: {
+        facturaId: { type: 'string' }, limite: { type: 'number', default: 50 }
+      }, required: ['facturaId']
+    }
+  },
+  {
+    name: 'vencimientos_dian',
+    description: 'Facturas próximas a vencer por DIAN (límite legal).',
+    inputSchema: {
+      type: 'object', properties: {
+        dias: { type: 'number', default: 15 }
+      }
+    }
+  },
+  {
+    name: 'resumen_proveedor',
+    description: 'Resumen de facturas agrupado por proveedor.',
+    inputSchema: {
+      type: 'object', properties: {
+        fechaInicio: { type: 'string' }, fechaFin: { type: 'string' },
+        limite: { type: 'number', default: 20 }
+      }
+    }
   }
 ];
 
@@ -140,6 +186,60 @@ async function ejecutarTool(name, args) {
         valorTotal: parseFloat(valorTotal.rows[0].v),
         porEstado: porEstado.rows
       };
+    }
+    case 'aprobar_factura': {
+      const r = await db.query('UPDATE facturas SET estado = $1, aprobada_en = NOW() WHERE id = $2 RETURNING id, estado, aprobada_en', ['aprobada', args.facturaId]);
+      if (r.rows.length === 0) throw new Error('Factura no encontrada');
+      return { id: r.rows[0].id, estado: 'aprobada' };
+    }
+    case 'rechazar_factura': {
+      const r = await db.query('UPDATE facturas SET estado = $1, motivo_rechazo = $2 WHERE id = $3 RETURNING id, estado', ['rechazada', args.motivo, args.facturaId]);
+      if (r.rows.length === 0) throw new Error('Factura no encontrada');
+      return { id: r.rows[0].id, estado: 'rechazada', motivo: args.motivo };
+    }
+    case 'historial_eventos': {
+      const lim = Math.min(parseInt(args.limite) || 50, 200);
+      const r = await db.query(`
+        SELECT e.id, e.tipo, e.comentario, e.creado_en, u.nombre AS usuario
+        FROM eventos_flujo e
+        LEFT JOIN usuarios u ON u.id = e.usuario_id
+        WHERE e.factura_id = $1
+        ORDER BY e.creado_en DESC LIMIT $2
+      `, [args.facturaId, lim]);
+      return r.rows;
+    }
+    case 'vencimientos_dian': {
+      const dias = parseInt(args.dias) || 15;
+      const r = await db.query(`
+        SELECT f.id, f.numero_factura, f.valor_total, f.limite_dian, f.estado,
+               p.nombre AS proveedor, p.nit AS proveedor_nit
+        FROM facturas f
+        LEFT JOIN proveedores p ON p.id = f.proveedor_id
+        WHERE f.limite_dian IS NOT NULL
+          AND f.limite_dian <= NOW() + INTERVAL '${dias} days'
+          AND f.estado NOT IN ('pagada', 'rechazada')
+        ORDER BY f.limite_dian ASC LIMIT 20
+      `);
+      return r.rows;
+    }
+    case 'resumen_proveedor': {
+      const c = [], p = [];
+      if (args.fechaInicio) { c.push('f.recibida_en >= $' + (p.length + 1)); p.push(args.fechaInicio); }
+      if (args.fechaFin) { c.push('f.recibida_en <= $' + (p.length + 1)); p.push(args.fechaFin); }
+      const w = c.length ? 'WHERE ' + c.join(' AND ') : '';
+      const lim = Math.min(parseInt(args.limite) || 20, 100);
+      const r = await db.query(`
+        SELECT p.nit, p.nombre AS proveedor, COUNT(f.id)::int AS total_facturas,
+               COALESCE(SUM(f.valor_total), 0)::numeric AS valor_total,
+               MIN(f.recibida_en) AS desde, MAX(f.recibida_en) AS hasta,
+               COUNT(CASE WHEN f.estado = 'pagada' THEN 1 END)::int AS pagadas,
+               COUNT(CASE WHEN f.estado = 'pendiente' THEN 1 END)::int AS pendientes
+        FROM facturas f
+        JOIN proveedores p ON p.id = f.proveedor_id
+        ${w}
+        GROUP BY p.id ORDER BY valor_total DESC LIMIT ${lim}
+      `, p);
+      return r.rows;
     }
     default: throw new Error('Tool no encontrada: ' + name);
   }
