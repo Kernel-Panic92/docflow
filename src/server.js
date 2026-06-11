@@ -33,6 +33,10 @@ app.use('/api/configuracion',  require('./routes/configuracion'));
 app.use('/api/audit',          require('./routes/audit'));
 app.use('/api/centros',        require('./routes/centros'));
 
+// ─── MCP ──────────────────────────────────────────────────────────────────────
+const mcp = require('./mcp');
+app.use('/mcp', mcp.createMiddleware());
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({
