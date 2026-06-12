@@ -5,6 +5,7 @@ async function doLogin(){
   const pass=$('login-pass').value;
   const errEl=$('login-error');
   errEl.classList.remove('show');
+  setLoading('btn-login',true);
   try{
     const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
     const d=await r.json();
@@ -13,6 +14,7 @@ async function doLogin(){
     localStorage.setItem('vd_t',d.token);localStorage.setItem('vd_u',JSON.stringify(d.usuario));
     if(d.cambio_password)showChPass();else showApp();
   }catch(ex){errEl.textContent=ex.message;errEl.classList.add('show')}
+  setLoading('btn-login',false);
 }
 function doLogout(){localStorage.removeItem('vd_t');localStorage.removeItem('vd_u');S.token=null;S.usuario=null;$('app-screen').classList.remove('show');$('login-screen').style.display='flex'}
 function showLogoutConfirm(){$('logout-modal').classList.add('open')}

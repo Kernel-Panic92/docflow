@@ -110,7 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .stat-value.green{color:var(--success)}.stat-value.yellow{color:var(--warning)}
 .stat-s{font-size:12px;color:var(--muted);margin-top:6px}
 
-#content canvas{will-change:transform}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* ── TABLE ── */
 .tbl{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
 .tbl-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
@@ -277,7 +278,7 @@ input[type=password]{letter-spacing:2px}
       <label>CONTRASEÑA</label>
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
     </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Ingresar</button>
+    <button class="btn btn-primary" id="btn-login" style="width:100%;justify-content:center" onclick="doLogin()">Ingresar</button>
     <div class="login-link">
       <a href="#" onclick="showForgot(event)">¿Olvidaste tu contraseña?</a>
     </div>

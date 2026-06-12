@@ -16,13 +16,6 @@ function cargarChartJs() {
   });
 }
 
-function _tamCanvas(ctx) {
-  const p = ctx.parentNode;
-  const dpr = window.devicePixelRatio || 1;
-  const w = p.clientWidth, h = p.clientHeight;
-  if (w > 0) { ctx.width = w * dpr; ctx.style.width = w + 'px'; }
-  if (h > 0) { ctx.height = h * dpr; ctx.style.height = h + 'px'; }
-}
 function crearOActualizar(id, config) {
   if (!config.options) config.options = {};
   if (_charts[id]) {
@@ -32,35 +25,12 @@ function crearOActualizar(id, config) {
   } else {
     const ctx = document.getElementById(id);
     if (!ctx) return;
-    _tamCanvas(ctx);
-    config.options.responsive = false;
     _charts[id] = new Chart(ctx, config);
   }
 }
-let _refreshInt = null;
-function _iniciarRefresh() {
-  if (_refreshInt) return;
-  _refreshInt = setInterval(() => {
-    Object.keys(_charts).forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      try{
-        const ctx = el.getContext('2d');
-        ctx.globalAlpha = 0.999;
-        ctx.fillRect(0,0,1,1);
-        ctx.globalAlpha = 1;
-        _charts[id].render();
-      }catch(e){}
-    });
-  }, 2000);
-}
-
-function _detenerRefresh() {
-  if (_refreshInt) { clearInterval(_refreshInt); _refreshInt = null; }
-}
 function destruirCharts() {
-  _detenerRefresh();
-  Object.keys(_charts).forEach(k => { _charts[k].destroy(); delete _charts[k]; });
+  Object.values(_charts).forEach(c => { try { c.destroy(); } catch {} });
+  Object.keys(_charts).forEach(k => delete _charts[k]);
 }
 
 async function rDash(){
@@ -109,12 +79,12 @@ async function rDash(){
     ${esAdmin||esTesorero?`
     <div style="margin-top:28px"><div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:16px">📊 Gráficos</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px">
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Mes</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-mes" style="width:100%;height:100%;display:block"></canvas></div></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Distribución por Estado</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-estado" style="width:100%;height:100%;display:block"></canvas></div></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Top Proveedores</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-proveedor" style="width:100%;height:100%;display:block"></canvas></div></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Categoría</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-categoria" style="width:100%;height:100%;display:block"></canvas></div></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Valor por Mes</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-valor" style="width:100%;height:100%;display:block"></canvas></div></div>
-        <div class="tbl" style="padding:20px;height:260px;overflow:hidden;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Área</div><div style="flex:1;min-height:0;position:relative"><canvas id="chart-area" style="width:100%;height:100%;display:block"></canvas></div></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Mes</div><canvas id="chart-mes" style="flex:1;min-height:0;display:block"></canvas></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Distribución por Estado</div><canvas id="chart-estado" style="flex:1;min-height:0;display:block"></canvas></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Top Proveedores</div><canvas id="chart-proveedor" style="flex:1;min-height:0;display:block"></canvas></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Categoría</div><canvas id="chart-categoria" style="flex:1;min-height:0;display:block"></canvas></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Valor por Mes</div><canvas id="chart-valor" style="flex:1;min-height:0;display:block"></canvas></div>
+        <div class="tbl" style="padding:20px;height:260px;overflow:visible;display:flex;flex-direction:column"><div style="flex-shrink:0;font-size:14px;font-weight:600;margin-bottom:12px">Facturas por Área</div><canvas id="chart-area" style="flex:1;min-height:0;display:block"></canvas></div>
       </div>
     </div>`:''}`;
   refreshBadges();
@@ -195,7 +165,6 @@ async function renderCharts(){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{color:gridColor},ticks:{color:textColor}}}}
     });
 
-    _iniciarRefresh();
   }catch(e){console.log('Chart error:',e.message)}
 }
 
