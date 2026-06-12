@@ -85,6 +85,7 @@ function showApp(){
   goTo(v);
 }
 
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&$('login-screen').style.display!=='none')doLogin()});
 function buildNav(){
   let h='';
   for(const sec of SECS){
