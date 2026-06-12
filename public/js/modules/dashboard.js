@@ -48,22 +48,22 @@ async function rDash(){
   }
   let stats='';
   if(esComprador){
-    stats+=stat('Pendientes aprobar',r.recibidas+r.revision,'var(--accent2)','orange');
+    stats+=stat('Pendientes aprobar',r.recibidas+r.revision,'orange');
   }else if(esAdmin){
-    stats+=stat('Recibidas',r.recibidas,'var(--accent)','blue');
-    stats+=stat('En revisión',r.revision,'var(--accent2)','orange');
-    stats+=stat('Por causar',r.aprobadas,'var(--success)','green');
-    stats+=stat('Por pagar',r.causadas,'var(--accent)','blue');
-    stats+=stat('Valor mes',fmt(r.valor_mes),'var(--warning)','yellow');
+    stats+=stat('Recibidas',r.recibidas,'blue');
+    stats+=stat('En revisión',r.revision,'orange');
+    stats+=stat('Por causar',r.aprobadas,'green');
+    stats+=stat('Por pagar',r.causadas,'blue');
+    stats+=stat('Valor mes',fmt(r.valor_mes),'yellow');
   }else if(esTesorero){
-    stats+=stat('Por causar',r.aprobadas,'var(--success)','green');
-    stats+=stat('Por pagar',r.causadas,'var(--accent)','blue');
-    stats+=stat('Valor mes',fmt(r.valor_mes),'var(--warning)','yellow');
+    stats+=stat('Por causar',r.aprobadas,'green');
+    stats+=stat('Por pagar',r.causadas,'blue');
+    stats+=stat('Valor mes',fmt(r.valor_mes),'yellow');
   }else{
-    stats+=stat('Recibidas',r.recibidas,'var(--accent)','blue');
-    stats+=stat('En revisión',r.revision,'var(--accent2)','orange');
-    stats+=stat('Por causar',r.aprobadas,'var(--success)','green');
-    stats+=stat('Valor mes',fmt(r.valor_mes),'var(--warning)','yellow');
+    stats+=stat('Recibidas',r.recibidas,'blue');
+    stats+=stat('En revisión',r.revision,'orange');
+    stats+=stat('Por causar',r.aprobadas,'green');
+    stats+=stat('Valor mes',fmt(r.valor_mes),'yellow');
   }
   const rc=d.recientes||[];
   const storageHtml=cargarStorage(d.storage);
