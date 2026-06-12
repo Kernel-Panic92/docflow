@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const db  = require('../db');
 
 /**
  * Verifica el JWT en el header Authorization: Bearer <token>
  * Adjunta req.usuario con { id, nombre, email, rol, area_id, _token }
  */
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token requerido' });
@@ -13,13 +14,21 @@ function authMiddleware(req, res, next) {
   const token = header.split(' ')[1];
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const sesion = await db.query('SELECT 1 FROM sesiones WHERE token = $1 AND expira > NOW()', [token]);
+    if (sesion.rows.length === 0) {
+      return res.status(401).json({ error: 'Sesión inválida o expirada' });
+    }
     req.usuario = { ...payload, _token: token };
     next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Sesión expirada' });
     }
-    return res.status(401).json({ error: 'Token inválido' });
+    if (err.name === 'JsonWebTokenError' || err.name === 'NotBeforeError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    console.error('[auth] Error de autenticación:', err.message);
+    return res.status(500).json({ error: 'Error interno de autenticación' });
   }
 }
 

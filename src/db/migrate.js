@@ -124,7 +124,8 @@ const migrations = [
                   'recibida','asignada','revision_iniciada',
                   'aprobada','rechazada','reenviada',
                   'centro_costos_asignado','causada','pagada',
-                  'escalacion_nivel1','escalacion_nivel2','dian_tacita','comentario'
+                  'escalacion_nivel1','escalacion_nivel2','dian_tacita','comentario',
+                  'soporte_adjuntado'
                 )),
   comentario  TEXT,
   metadata    JSONB,
@@ -161,7 +162,7 @@ const migrations = [
   ('horas_escalacion_nivel2', '48',   'Horas antes de escalar a gerencia'),
   ('horas_dian_tacita',       '48',   'Horas para aceptación tácita DIAN'),
   ('email_notificaciones',    '',     'Correo para copia de notificaciones'),
-  ('empresa_nombre',          'Vitamar', 'Nombre de la empresa'),
+  ('empresa_nombre',          'Mi Empresa', 'Nombre de la empresa'),
   ('moneda',                  'COP',  'Moneda por defecto')
 ON CONFLICT (clave) DO NOTHING`,
 
@@ -175,13 +176,14 @@ ON CONFLICT (clave) DO NOTHING`,
 
 // ─── 013: Sesiones (para logout y gestión) ───────────────────────────────────
 `CREATE TABLE IF NOT EXISTS sesiones (
-  token      VARCHAR(100) PRIMARY KEY,
+  token      TEXT PRIMARY KEY,
   usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
   expira     TIMESTAMPTZ NOT NULL,
   ip         VARCHAR(50),
   user_agent TEXT,
   creado_en  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )`,
+`ALTER TABLE IF EXISTS sesiones ALTER COLUMN token TYPE TEXT`,
 
 // ─── 014: Log de accesos (auditoría login) ───────────────────────────────────
 `CREATE TABLE IF NOT EXISTS log_accesos (
@@ -305,11 +307,14 @@ async function migrate() {
     console.log('\n✅ Todas las migraciones ejecutadas correctamente.');
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-migrate().catch(err => {
-  console.error('\n❌ Migración fallida:', err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  migrate().then(async () => { const { pool } = require('./index'); await pool.end(); process.exit(0); }).catch(err => {
+    console.error('\n❌ Migración fallida:', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = migrate;

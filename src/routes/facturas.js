@@ -33,6 +33,18 @@ const upload = multer({
   },
 });
 
+const uploadSoporte = multer({
+  storage,
+  limits: { fileSize: (parseInt(process.env.MAX_FILE_MB) || 10) * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    if (!allowed.includes(path.extname(file.originalname).toLowerCase())) {
+      return cb(new Error('Tipo de archivo no permitido. Use PDF, PNG, JPG o GIF'));
+    }
+    cb(null, true);
+  },
+});
+
 // ─── Helper: registrar evento ─────────────────────────────────────────────────
 async function registrarEvento(client, facturaId, usuarioId, tipo, comentario = null, metadata = null) {
   await client.query(
@@ -69,8 +81,8 @@ router.get('/badge-stats', requireRol('admin','contador','tesorero','comprador',
     const urgenteRes = await db.query(
       `SELECT COUNT(*) as total FROM facturas f 
        WHERE f.estado IN ('recibida','aprobada') 
-       AND f.fecha_limite_pago IS NOT NULL
-       AND f.fecha_limite_pago <= $1`,
+       AND f.limite_pago IS NOT NULL
+       AND f.limite_pago <= $1`,
       [tresDias]
     );
     
@@ -577,7 +589,7 @@ router.patch('/:id/pagar', requireRol('admin','tesorero'), async (req, res) => {
 });
 
 // ─── POST /api/facturas/:id/soporte-pago ───────────────────────────────────
-router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('soporte'), async (req, res) => {
+router.post('/:id/soporte-pago', requireRol('admin','tesorero'), uploadSoporte.single('soporte'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Archivo requerido' });
   }
@@ -594,8 +606,6 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('
   const filename = `soporte_${req.params.id}_${Date.now()}${ext}`;
   const filepath = path.join(uploadDir, filename);
 
-  fs.writeFileSync(filepath, req.file.buffer);
-
   const client = await db.getClient();
   try {
     await client.query('BEGIN');
@@ -603,14 +613,22 @@ router.post('/:id/soporte-pago', requireRol('admin','tesorero'), upload.single('
       `UPDATE facturas SET soporte_pago=$1, soporte_pago_nombre=$2 WHERE id=$3 RETURNING *`,
       [filename, req.file.originalname, req.params.id]
     );
-    if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Factura no encontrada' }); }
+    if (!rows[0]) {
+      await client.query('ROLLBACK');
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+
+    fs.copyFileSync(req.file.path, filepath);
+    fs.unlinkSync(req.file.path);
 
     await registrarEvento(client, req.params.id, req.usuario.id, 'soporte_adjuntado', `Soporte de pago: ${req.file.originalname}`);
     await client.query('COMMIT');
     res.json(rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
-    fs.unlinkSync(filepath);
+    if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
@@ -666,9 +684,22 @@ router.get('/:id/pdf', requireRol('admin','contador','tesorero','comprador','aud
 });
 
 // ─── DELETE /api/facturas/:id ──────────────────────────────────────────────────
+const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
+
+function limpiarArchivo(ruta) {
+  if (ruta) { const p = path.join(UPLOAD_DIR, 'facturas', ruta); if (fs.existsSync(p)) fs.unlinkSync(p); }
+}
+function limpiarSoporte(ruta) {
+  if (ruta) { const p = path.join(UPLOAD_DIR, 'soportes', ruta); if (fs.existsSync(p)) fs.unlinkSync(p); }
+}
+
 router.delete('/:id', requireRol('admin'), async (req, res) => {
   const client = await db.getClient();
   try {
+    const { rows: old } = await client.query(
+      'SELECT archivo_pdf, archivo_xml, soporte_pago FROM facturas WHERE id=$1',
+      [req.params.id]
+    );
     await client.query('BEGIN');
     const { rows } = await client.query(
       'DELETE FROM facturas WHERE id=$1 RETURNING id, numero_factura',
@@ -679,6 +710,11 @@ router.delete('/:id', requireRol('admin'), async (req, res) => {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
     await client.query('COMMIT');
+    if (old[0]) {
+      limpiarArchivo(old[0].archivo_pdf);
+      limpiarArchivo(old[0].archivo_xml);
+      limpiarSoporte(old[0].soporte_pago);
+    }
     res.json({ mensaje: 'Factura eliminada', id: rows[0].id, numero_factura: rows[0].numero_factura });
   } catch (err) {
     await client.query('ROLLBACK');

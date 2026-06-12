@@ -320,12 +320,17 @@ async function procesarCorreo(parsed, msgId) {
   try {
     await client.query('BEGIN');
 
-    const dup = await client.query(
-      'SELECT id FROM facturas WHERE numero_factura = $1',
-      [numeroFactura]
-    );
+    const dup = nitEmisor
+      ? await client.query(
+          'SELECT id FROM facturas WHERE nit_emisor = $1 AND numero_factura = $2',
+          [nitEmisor, numeroFactura]
+        )
+      : await client.query(
+          'SELECT id FROM facturas WHERE numero_factura = $1',
+          [numeroFactura]
+        );
     if (dup.rows.length > 0) {
-      console.log(`  [IMAP] Factura ${numeroFactura} ya existe — omitiendo`);
+      console.log(`  [IMAP] Factura ${numeroFactura}${nitEmisor ? ' (' + nitEmisor + ')' : ''} ya existe — omitiendo`);
       await client.query('ROLLBACK');
       client.release();
       return 'duplicada';

@@ -187,6 +187,14 @@ router.post('/login', loginRateLimit, async (req, res) => {
       expiresIn: process.env.JWT_EXPIRES_IN || '8h',
     });
 
+    const decoded = jwt.decode(token);
+    await db.query(
+      `INSERT INTO sesiones (token, usuario_id, expira, ip, user_agent)
+       VALUES ($1, $2, to_timestamp($3), $4, $5)
+       ON CONFLICT (token) DO NOTHING`,
+      [token, usuario.id, decoded.exp, req.ip || '', req.headers['user-agent'] || '']
+    );
+
     res.json({
       token,
       usuario: payload,

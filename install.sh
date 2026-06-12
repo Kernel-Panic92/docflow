@@ -16,10 +16,11 @@ warn() { echo -e "${AMARILLO}  ⚠ $1${RESET}"; }
 err()  { echo -e "${ROJO}  ✗ $1${RESET}"; exit 1; }
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
+VERSION=$(node -e "console.log(require('$INSTALL_DIR/package.json').version)" 2>/dev/null || echo "1.0.0")
 
 echo ""
 echo -e "${AZUL}══════════════════════════════════════════════${RESET}"
-echo -e "${AZUL}   DocFlow — Instalador v1.0.0${RESET}"
+echo -e "${AZUL}   DocFlow — Instalador v${VERSION}${RESET}"
 echo -e "${AZUL}   Sistema de Gestión Documental${RESET}"
 echo -e "${AZUL}══════════════════════════════════════════════${RESET}"
 echo ""
@@ -96,9 +97,15 @@ fi
 
 # Configurar PostgreSQL para aceptar conexiones por password
 info "Configurando PostgreSQL..."
-PG_CONF="/etc/postgresql/16/main/pg_hba.conf"
+PG_MAJOR=$(psql --version 2>/dev/null | head -1 | sed 's/.* \([0-9]\+\)\..*/\1/')
+if [[ -z "$PG_MAJOR" || "$PG_MAJOR" -lt 12 ]]; then
+  PG_MAJOR=16
+fi
+PG_CONF=$(find /etc/postgresql -maxdepth 2 -name "pg_hba.conf" 2>/dev/null | head -1)
+if [[ -z "$PG_CONF" ]]; then
+  PG_CONF="/etc/postgresql/$PG_MAJOR/main/pg_hba.conf"
+fi
 if [[ -f "$PG_CONF" ]]; then
-  # Cambiar autenticación a md5 para conexiones locales
   if ! grep -q "host.*all.*all.*127.0.0.1/32.*md5" "$PG_CONF"; then
     sudo sed -i 's/host.*all.*all.*127.0.0.1\/32.*peer/host all all 127.0.0.1\/32 md5/g' "$PG_CONF"
     sudo sed -i 's/host.*all.*all.*::1\/128.*peer/host all ::1\/128 md5/g' "$PG_CONF"
@@ -107,8 +114,6 @@ if [[ -f "$PG_CONF" ]]; then
     ok "PostgreSQL configurado para autenticación por password"
   fi
 fi
-
-# Verificar que PostgreSQL esté corriendo
 
 # Verificar que PostgreSQL esté corriendo
 for i in 1 2 3 4 5; do
@@ -129,7 +134,7 @@ ok "PostgreSQL $PG_VER"
 
 # ── 4. Dependencias npm ───────────────────────────────────────
 info "Instalando dependencias npm..."
-npm install --production --prefix "$INSTALL_DIR"
+npm --prefix "$INSTALL_DIR" install --production
 ok "Dependencias instaladas"
 
 # ── 5. Configuración general ──────────────────────────────────
@@ -307,9 +312,13 @@ SMTP_USER=$SMTP_USER
 SMTP_PASSWORD=$SMTP_PASSWORD
 SMTP_FROM=$SMTP_FROM
 
+# ─── App URL (para enlaces en correos) ─────────────────────────
+APP_URL=http://localhost:$PUERTO
+
 # ─── Archivos ──────────────────────────────────────────────────
 UPLOAD_DIR=./uploads/facturas
 MAX_FILE_MB=10
+MAX_ATTACHMENT_MB=50
 ENVEOF
 
 chmod 600 "$INSTALL_DIR/.env"
@@ -346,7 +355,7 @@ ok "Carpeta de archivos: $INSTALL_DIR/uploads/facturas"
 # ── 14. Backup ────────────────────────────────────────────────
 echo ""
 echo -e "${AZUL}── Configuración de Backup ──────────────────${RESET}"
-BACKUP_LOCAL="$HOME/backups/docflow"
+BACKUP_LOCAL="$INSTALL_DIR/backups"
 mkdir -p "$BACKUP_LOCAL"
 ok "Carpeta de backups: $BACKUP_LOCAL"
 
@@ -408,7 +417,7 @@ if [[ "\$USAR_NAS" == "true" ]] && [[ -n "\$SMB_SERVER" ]]; then
     sudo mkdir -p "\$SMB_MOUNT"
     sudo mount -t cifs "\$SMB_SERVER" "\$SMB_MOUNT" \
       -o username="\$SMB_USER",password="\$SMB_PASS",vers=3.0 2>/dev/null || {
-      echo "[\$(date '+%H:%M:%S')] WARN: No se pudo montar NAS"; exit 0
+      echo "[\$(date '+%H:%M:%S')] WARN: No se pudo montar NAS — omitiendo copia"
     }
   fi
   mkdir -p "\$BACKUP_RED"
@@ -473,6 +482,26 @@ fi
 
 pm2 save
 pm2 startup | tail -1 | bash 2>/dev/null || warn "Ejecuta manualmente: pm2 startup"
+
+# Rotación de logs
+pm2 install pm2-logrotate 2>/dev/null || warn "Si falla, ejecuta: pm2 install pm2-logrotate"
+pm2 set pm2-logrotate:max_size 50M 2>/dev/null || true
+pm2 set pm2-logrotate:retain 7 2>/dev/null || true
+pm2 set pm2-logrotate:compress true 2>/dev/null || true
+
+# Logrotate del sistema para logs adicionales
+cat > /tmp/docflow-logrotate << LOGR
+$INSTALL_DIR/logs/*.log {
+  daily
+  rotate 7
+  compress
+  delaycompress
+  missingok
+  notifempty
+  copytruncate
+}
+LOGR
+sudo mv /tmp/docflow-logrotate /etc/logrotate.d/docflow 2>/dev/null || warn "No se pudo instalar logrotate system, ejecuta manual: sudo apt install logrotate"
 ok "PM2 configurado para arrancar con el sistema"
 
 # ── 16. Cron de backup ────────────────────────────────────────
@@ -629,6 +658,7 @@ NGINXEOF
   fi
 
   HTTPS_URL="https://$HTTPS_DOMAIN:$HTTPS_PORT"
+  sed -i "s|^APP_URL=.*|APP_URL=$HTTPS_URL|" "$INSTALL_DIR/.env"
 fi
 
 # ── 18. Fail2ban ──────────────────────────────────────────────

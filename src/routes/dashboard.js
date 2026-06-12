@@ -96,16 +96,120 @@ router.get('/', async (req, res) => {
       if (row.estado === 'rechazada') resumen.rechazadas = row.total;
     }
 
+    // Storage via statfs (instant syscall, no subprocess)
+    let storage = { total_gb: 0, used_gb: 0, avail_gb: 0, percent_used: 0 };
+    try {
+      const fs2 = require('fs');
+      const st = fs2.statfsSync(process.cwd());
+      const bsize = Number(st.bsize) || 4096;
+      const total = Math.floor(Number(st.blocks) * bsize / (1024*1024*1024));
+      const avail = Math.floor(Number(st.bavail) * bsize / (1024*1024*1024));
+      const used  = total - Math.floor(Number(st.bfree) * bsize / (1024*1024*1024));
+      const pct   = total > 0 ? Math.round(used / total * 100) : 0;
+      storage = { total_gb: Math.max(total,0), used_gb: Math.max(used,0), avail_gb: Math.max(avail,0), percent_used: Math.min(pct,100) };
+    } catch {}
+
+    res.setHeader('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma','no-cache');
+    res.setHeader('Expires','0');
     res.json({
       rol,
       resumen,
       por_categoria: porCategoria.rows,
       vencimientos: vencimientos.rows,
       recientes: recientes.rows,
+      storage,
     });
 
   } catch (err) {
     console.error('[dashboard]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/dashboard/charts
+router.get('/charts', async (req, res) => {
+  try {
+    const esComprador = req.usuario.rol === 'comprador';
+
+    const [porMes, porEstado, porProveedor, porCategoria, porArea, valorPorMes] = await Promise.all([
+
+      // Facturas por mes (últimos 12)
+      db.query(`
+        SELECT DATE_TRUNC('month', creado_en)::date AS mes,
+               COUNT(*)::int AS total,
+               COALESCE(SUM(valor_total), 0)::numeric AS valor
+        FROM facturas
+        WHERE creado_en >= NOW() - INTERVAL '12 months'
+        GROUP BY mes
+        ORDER BY mes
+      `),
+
+      // Conteo por estado
+      esComprador
+        ? db.query(`SELECT estado, COUNT(*)::int AS total FROM facturas WHERE estado IN ('recibida','revision') GROUP BY estado`)
+        : db.query(`SELECT estado, COUNT(*)::int AS total FROM facturas GROUP BY estado`),
+
+      // Top 10 proveedores
+      esComprador
+        ? Promise.resolve({ rows: [] })
+        : db.query(`
+            SELECT p.nombre, COUNT(f.id)::int AS total, COALESCE(SUM(f.valor_total), 0)::numeric AS valor
+            FROM proveedores p
+            JOIN facturas f ON f.proveedor_id = p.id
+            GROUP BY p.id, p.nombre
+            ORDER BY total DESC
+            LIMIT 10
+          `),
+
+      // Por categoría
+      esComprador
+        ? Promise.resolve({ rows: [] })
+        : db.query(`
+            SELECT c.nombre, c.color, COUNT(f.id)::int AS total
+            FROM categorias_compra c
+            LEFT JOIN facturas f ON f.categoria_id = c.id
+            WHERE c.activo = TRUE
+            GROUP BY c.id, c.nombre, c.color
+            ORDER BY total DESC
+            LIMIT 10
+          `),
+
+      // Por área
+      esComprador
+        ? Promise.resolve({ rows: [] })
+        : db.query(`
+            SELECT a.nombre, COUNT(f.id)::int AS total, COALESCE(SUM(f.valor_total), 0)::numeric AS valor
+            FROM areas a
+            LEFT JOIN facturas f ON f.area_responsable_id = a.id
+            GROUP BY a.id, a.nombre
+            ORDER BY total DESC
+            LIMIT 10
+          `),
+
+      // Valor por mes (últimos 12)
+      db.query(`
+        SELECT DATE_TRUNC('month', creado_en)::date AS mes,
+               COALESCE(SUM(valor_total), 0)::numeric AS valor
+        FROM facturas
+        WHERE estado IN ('causada','pagada')
+          AND creado_en >= NOW() - INTERVAL '12 months'
+        GROUP BY mes
+        ORDER BY mes
+      `),
+    ]);
+
+    res.json({
+      por_mes: porMes.rows,
+      por_estado: porEstado.rows,
+      por_proveedor: porProveedor.rows,
+      por_categoria: porCategoria.rows,
+      por_area: porArea.rows,
+      valor_por_mes: valorPorMes.rows,
+    });
+
+  } catch (err) {
+    console.error('[dashboard/charts]', err.message);
     res.status(500).json({ error: err.message });
   }
 });

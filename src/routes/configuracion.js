@@ -49,7 +49,13 @@ const logoUpload = multer({
 
 router.post('/logo', requireRol('admin'), logoUpload.single('logo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
-  
+
+  const logoDir = path.join(process.cwd(), 'public', 'logos');
+  try {
+    const viejos = fs.readdirSync(logoDir).filter(f => f.startsWith('logo_') && f !== req.file.filename);
+    for (const f of viejos) fs.unlinkSync(path.join(logoDir, f));
+  } catch (e) { /* ignore */ }
+
   const url = `/logos/${req.file.filename}`;
   
   await db.query(
@@ -200,7 +206,7 @@ router.get('/smtp/test', requireRol('admin'), async (req, res) => {
     await transporter.sendMail({
       from: fromAddr,
       to: user,
-      subject: 'Prueba SMTP - Vitamar Docs',
+      subject: 'Prueba SMTP - DocFlow',
       text: 'Esta es una prueba de configuracion SMTP.\n\nSi recibes este correo, la configuracion es correcta.',
     });
     

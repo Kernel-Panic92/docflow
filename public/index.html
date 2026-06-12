@@ -43,8 +43,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 #app-screen.show{display:flex}
 
 /* ── SIDEBAR ── */
-.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;height:100vh;z-index:10;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.sidebar{width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;height:100vh;z-index:10;transition:width .28s cubic-bezier(.4,0,.2,1),transform .28s cubic-bezier(.4,0,.2,1)}
 .sidebar.open{transform:translateX(0)}
+.sidebar-toggle{position:absolute;top:20px;right:-14px;width:28px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--muted);z-index:11;transition:all .2s;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.sidebar-toggle:hover{color:var(--text);border-color:var(--accent)}
+.sidebar.collapsed{width:68px}
+.sidebar.collapsed .logo{padding:0 0 16px;text-align:center}
+.sidebar.collapsed .logo span{display:none}
+.sidebar.collapsed .user-info,.sidebar.collapsed .role-badge{display:none}
+.sidebar.collapsed .nav-item{justify-content:center;padding:11px 0}
+.sidebar.collapsed .nav-item span:not(.nav-icon){display:none}
+.sidebar.collapsed .nav-icon{font-size:20px;width:auto}
+.sidebar.collapsed .sidebar-footer{padding:12px 8px}
+.sidebar.collapsed .btn-logout{justify-content:center;padding:9px 0}
+.sidebar.collapsed .btn-logout span:last-child{display:none}
+.sidebar.collapsed .btn-logout .nav-icon{font-size:18px}
+.sidebar.collapsed .sidebar-footer>div{display:none}
+.sidebar.collapsed~.main{margin-left:68px}
 .logo{padding:0 24px 16px;font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:-.2px}
 .logo span{color:var(--accent)}
 .user-info{margin:0 16px 20px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
@@ -95,6 +110,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .stat-value.green{color:var(--success)}.stat-value.yellow{color:var(--warning)}
 .stat-s{font-size:12px;color:var(--muted);margin-top:6px}
 
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 /* ── TABLE ── */
 .tbl{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
 .tbl-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
@@ -261,7 +278,7 @@ input[type=password]{letter-spacing:2px}
       <label>CONTRASEÑA</label>
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
     </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doLogin()">Ingresar</button>
+    <button class="btn btn-primary" id="btn-login" style="width:100%;justify-content:center" onclick="doLogin()">Ingresar</button>
     <div class="login-link">
       <a href="#" onclick="showForgot(event)">¿Olvidaste tu contraseña?</a>
     </div>
@@ -316,6 +333,7 @@ input[type=password]{letter-spacing:2px}
   <div class="mob-overlay" id="mob-overlay" onclick="closeSidebar()"></div>
 
   <div class="sidebar" id="sidebar">
+    <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebarCollapse()">◀</div>
     <div class="logo" id="header-logo">DocFlow <span>DOCS</span></div>
     <div class="user-info">
       <div class="user-name" id="u-name">—</div>
@@ -324,9 +342,10 @@ input[type=password]{letter-spacing:2px}
     </div>
     <nav class="nav-menu" id="nav"></nav>
     <div class="sidebar-footer">
-      <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+      <button class="btn-logout" onclick="showLogoutConfirm()"><span class="nav-icon">⏻</span><span>Cerrar sesión</span></button>
       <div style="margin-top:10px;text-align:center;font-size:10px;color:var(--muted);line-height:1.6;opacity:0.7;">
         <div id="app-version"></div>
+        <div id="app-repo"></div>
         <div id="app-copyright"></div>
       </div>
     </div>
@@ -335,9 +354,21 @@ input[type=password]{letter-spacing:2px}
   <div class="main" id="main">
     <div class="main-topbar">
       <button class="main-icon-btn" onclick="toggleTheme()" title="Cambiar tema" id="theme-btn">🌙</button>
-      <button class="main-icon-btn logout" onclick="doLogout()" title="Cerrar sesión">↩</button>
     </div>
     <div id="content"></div>
+  </div>
+</div>
+
+<!-- Logout confirm modal -->
+<div id="logout-modal" class="modal-overlay" onclick="if(event.target===this)closeLogoutConfirm()">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <div style="font-size:44px;margin-bottom:8px">👋</div>
+    <div class="modal-title" style="font-size:20px;">Cerrar sesión</div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:8px">¿Estás seguro de que deseas cerrar tu sesión?</p>
+    <div class="modal-footer" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="closeLogoutConfirm()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmLogout()">Cerrar sesión</button>
+    </div>
   </div>
 </div>
 
@@ -347,7 +378,21 @@ input[type=password]{letter-spacing:2px}
 <!-- Toast -->
 <div id="toast" class="toast"></div>
 
-<script src="/app.js"></script>
+<script src="/js/utils/api.js?v=1"></script>
+<script src="/js/utils/helpers.js?v=1"></script>
+<script src="/js/components/modals.js?v=1"></script>
+<script src="/js/modules/auth.js?v=1"></script>
+<script src="/js/modules/dashboard.js?v=1"></script>
+<script src="/js/modules/facturas.js?v=1"></script>
+<script src="/js/modules/pendientes.js?v=1"></script>
+<script src="/js/modules/soporte.js?v=1"></script>
+<script src="/js/modules/categorias.js?v=1"></script>
+<script src="/js/modules/areas.js?v=1"></script>
+<script src="/js/modules/usuarios.js?v=1"></script>
+<script src="/js/modules/audit.js?v=1"></script>
+<script src="/js/modules/backup.js?v=1"></script>
+<script src="/js/modules/config.js?v=1"></script>
+<script src="/app.js?v=1"></script>
 
 </body>
 </html>
