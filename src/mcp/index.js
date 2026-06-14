@@ -4,7 +4,7 @@ const db = require('../db');
 const TOOLS = [
   {
     name: 'listar_facturas',
-    description: 'Lista facturas con filtros opcionales (estado, proveedor, rango de fechas).',
+    description: 'Lista facturas con filtros opcionales (estado, proveedor, rango de fechas). Solo lectura.',
     inputSchema: {
       type: 'object', properties: {
         estado: { type: 'string', enum: ['recibida', 'revision', 'aprobada', 'rechazada', 'causada', 'pagada'] },
@@ -52,20 +52,44 @@ const TOOLS = [
   },
   {
     name: 'aprobar_factura',
-    description: 'Aprueba una factura (cambia estado a aprobada).',
+    description: 'Aprueba una factura en estado recibida o revision. Requiere centroOperacionId, areaResponsableId. Registra evento de auditoría.',
     inputSchema: {
       type: 'object', properties: {
-        facturaId: { type: 'string' }, observaciones: { type: 'string' }
-      }, required: ['facturaId']
+        facturaId: { type: 'string' },
+        centroOperacionId: { type: 'string' },
+        areaResponsableId: { type: 'string' },
+        centroCostos: { type: 'string' },
+        descripcionGasto: { type: 'string' },
+        referencia: { type: 'string' },
+        comentario: { type: 'string' }
+      }, required: ['facturaId', 'centroOperacionId', 'areaResponsableId']
     }
   },
   {
     name: 'rechazar_factura',
-    description: 'Rechaza una factura con motivo.',
+    description: 'Rechaza una factura en estado recibida o revision. Requiere motivo. Registra evento de auditoría.',
     inputSchema: {
       type: 'object', properties: {
         facturaId: { type: 'string' }, motivo: { type: 'string' }
       }, required: ['facturaId', 'motivo']
+    }
+  },
+  {
+    name: 'causar_factura',
+    description: 'Causa una factura aprobada (cambia estado a causada). Requiere que esté en estado aprobada. Registra evento.',
+    inputSchema: {
+      type: 'object', properties: {
+        facturaId: { type: 'string' }, comentario: { type: 'string' }
+      }, required: ['facturaId']
+    }
+  },
+  {
+    name: 'pagar_factura',
+    description: 'Marca una factura como pagada (cambia estado a pagada). Requiere que esté en estado causada. Registra evento.',
+    inputSchema: {
+      type: 'object', properties: {
+        facturaId: { type: 'string' }, comentario: { type: 'string' }
+      }, required: ['facturaId']
     }
   },
   {
@@ -98,6 +122,14 @@ const TOOLS = [
   }
 ];
 
+async function registrarEvento(client, facturaId, tipo, comentario = null) {
+  await client.query(
+    `INSERT INTO eventos_flujo (factura_id, tipo, comentario)
+     VALUES ($1, $2, $3)`,
+    [facturaId, tipo, comentario]
+  );
+}
+
 async function ejecutarTool(name, args) {
   switch (name) {
     case 'listar_facturas': {
@@ -108,6 +140,7 @@ async function ejecutarTool(name, args) {
       if (args.fechaFin) { c.push('f.recibida_en <= $' + (p.length + 1)); p.push(args.fechaFin); }
       const w = c.length ? 'WHERE ' + c.join(' AND ') : '';
       const lim = Math.min(parseInt(args.limite) || 50, 200);
+      p.push(lim);
       const r = await db.query(
         `SELECT f.id, f.numero_factura, f.valor_total, f.estado, f.recibida_en, f.limite_pago,
                 p.nombre AS proveedor, c.nombre AS categoria
@@ -116,7 +149,7 @@ async function ejecutarTool(name, args) {
          LEFT JOIN categorias_compra c ON c.id = f.categoria_id
          ${w}
          ORDER BY f.recibida_en DESC
-         LIMIT ${lim}`, p);
+         LIMIT $${p.length}`, p);
       return r.rows;
     }
     case 'resumen_dashboard': {
@@ -145,11 +178,11 @@ async function ejecutarTool(name, args) {
         FROM facturas f
         LEFT JOIN proveedores p ON p.id = f.proveedor_id
         WHERE f.limite_pago IS NOT NULL
-          AND f.limite_pago <= CURRENT_DATE + INTERVAL '${dias} days'
+          AND f.limite_pago <= CURRENT_DATE + $1::interval
           AND f.estado NOT IN ('pagada','rechazada')
         ORDER BY f.limite_pago ASC
         LIMIT 20
-      `);
+      `, [dias + ' days']);
       return r.rows;
     }
     case 'buscar_factura': {
@@ -188,14 +221,95 @@ async function ejecutarTool(name, args) {
       };
     }
     case 'aprobar_factura': {
-      const r = await db.query('UPDATE facturas SET estado = $1, aprobada_en = NOW() WHERE id = $2 RETURNING id, estado, aprobada_en', ['aprobada', args.facturaId]);
-      if (r.rows.length === 0) throw new Error('Factura no encontrada');
-      return { id: r.rows[0].id, estado: 'aprobada' };
+      if (!args.centroOperacionId) throw new Error('centroOperacionId es requerido');
+      if (!args.areaResponsableId) throw new Error('areaResponsableId es requerido');
+      const client = await db.getClient();
+      try {
+        await client.query('BEGIN');
+        const r = await client.query(
+          `UPDATE facturas SET estado='aprobada', aprobada_en=NOW(),
+             centro_operacion_id=$1, area_responsable_id=$2,
+             centro_costos=$3, descripcion_gasto=$4, referencia=$5
+           WHERE id=$6 AND estado IN ('recibida','revision')
+           RETURNING id, estado, aprobada_en`,
+          [args.centroOperacionId, args.areaResponsableId,
+           args.centroCostos || null, args.descripcionGasto || null, args.referencia || null,
+           args.facturaId]
+        );
+        if (r.rows.length === 0) throw new Error('Factura no encontrada o no está en estado recibida/revision');
+        await registrarEvento(client, args.facturaId, 'aprobada', args.comentario || 'Aprobada vía MCP');
+        await client.query('COMMIT');
+        return { id: r.rows[0].id, estado: 'aprobada' };
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
     }
     case 'rechazar_factura': {
-      const r = await db.query('UPDATE facturas SET estado = $1, motivo_rechazo = $2 WHERE id = $3 RETURNING id, estado', ['rechazada', args.motivo, args.facturaId]);
-      if (r.rows.length === 0) throw new Error('Factura no encontrada');
-      return { id: r.rows[0].id, estado: 'rechazada', motivo: args.motivo };
+      if (!args.motivo) throw new Error('motivo es requerido');
+      const client = await db.getClient();
+      try {
+        await client.query('BEGIN');
+        const r = await client.query(
+          `UPDATE facturas SET estado='rechazada', motivo_rechazo=$1
+           WHERE id=$2 AND estado IN ('recibida','revision')
+           RETURNING id, estado`,
+          [args.motivo, args.facturaId]
+        );
+        if (r.rows.length === 0) throw new Error('Factura no encontrada o no está en estado recibida/revision');
+        await registrarEvento(client, args.facturaId, 'rechazada', args.motivo);
+        await client.query('COMMIT');
+        return { id: r.rows[0].id, estado: 'rechazada', motivo: args.motivo };
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    }
+    case 'causar_factura': {
+      const clientC = await db.getClient();
+      try {
+        await clientC.query('BEGIN');
+        const r = await clientC.query(
+          `UPDATE facturas SET estado='causada', causada_en=NOW()
+           WHERE id=$1 AND estado='aprobada'
+           RETURNING id, estado, causada_en`,
+          [args.facturaId]
+        );
+        if (r.rows.length === 0) throw new Error('Factura no encontrada o no está en estado aprobada');
+        await registrarEvento(clientC, args.facturaId, 'causada', args.comentario || 'Causada vía MCP');
+        await clientC.query('COMMIT');
+        return { id: r.rows[0].id, estado: 'causada' };
+      } catch (err) {
+        await clientC.query('ROLLBACK');
+        throw err;
+      } finally {
+        clientC.release();
+      }
+    }
+    case 'pagar_factura': {
+      const clientP = await db.getClient();
+      try {
+        await clientP.query('BEGIN');
+        const r = await clientP.query(
+          `UPDATE facturas SET estado='pagada', pagada_en=NOW()
+           WHERE id=$1 AND estado='causada'
+           RETURNING id, estado, pagada_en`,
+          [args.facturaId]
+        );
+        if (r.rows.length === 0) throw new Error('Factura no encontrada o no está en estado causada');
+        await registrarEvento(clientP, args.facturaId, 'pagada', args.comentario || 'Pagada vía MCP');
+        await clientP.query('COMMIT');
+        return { id: r.rows[0].id, estado: 'pagada' };
+      } catch (err) {
+        await clientP.query('ROLLBACK');
+        throw err;
+      } finally {
+        clientP.release();
+      }
     }
     case 'historial_eventos': {
       const lim = Math.min(parseInt(args.limite) || 50, 200);
@@ -216,10 +330,10 @@ async function ejecutarTool(name, args) {
         FROM facturas f
         LEFT JOIN proveedores p ON p.id = f.proveedor_id
         WHERE f.limite_dian IS NOT NULL
-          AND f.limite_dian <= NOW() + INTERVAL '${dias} days'
+          AND f.limite_dian <= NOW() + $1::interval
           AND f.estado NOT IN ('pagada', 'rechazada')
         ORDER BY f.limite_dian ASC LIMIT 20
-      `);
+      `, [dias + ' days']);
       return r.rows;
     }
     case 'resumen_proveedor': {
@@ -228,16 +342,17 @@ async function ejecutarTool(name, args) {
       if (args.fechaFin) { c.push('f.recibida_en <= $' + (p.length + 1)); p.push(args.fechaFin); }
       const w = c.length ? 'WHERE ' + c.join(' AND ') : '';
       const lim = Math.min(parseInt(args.limite) || 20, 100);
+      p.push(lim);
       const r = await db.query(`
         SELECT p.nit, p.nombre AS proveedor, COUNT(f.id)::int AS total_facturas,
                COALESCE(SUM(f.valor_total), 0)::numeric AS valor_total,
                MIN(f.recibida_en) AS desde, MAX(f.recibida_en) AS hasta,
                COUNT(CASE WHEN f.estado = 'pagada' THEN 1 END)::int AS pagadas,
-               COUNT(CASE WHEN f.estado = 'pendiente' THEN 1 END)::int AS pendientes
+               COUNT(CASE WHEN f.estado NOT IN ('pagada', 'rechazada') THEN 1 END)::int AS pendientes
         FROM facturas f
         JOIN proveedores p ON p.id = f.proveedor_id
         ${w}
-        GROUP BY p.id ORDER BY valor_total DESC LIMIT ${lim}
+        GROUP BY p.id ORDER BY valor_total DESC LIMIT $${p.length}
       `, p);
       return r.rows;
     }
@@ -294,6 +409,8 @@ function createRouter() {
         });
         return;
       }
+      case 'ping':
+        return res.json(rpcResult(id, {}));
       case 'notifications/initialized':
         return res.status(202).end();
       default:
