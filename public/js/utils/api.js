@@ -9,6 +9,16 @@ async function api(m,p,b,isF){
   else if(isF)o.body=b;
   const url=m==='GET'?`/api${p}${p.includes('?')?'&':'?'}_t=${Date.now()}`:`/api${p}`;
   const r=await fetch(url,o);
+  if (r.status === 401) {
+    localStorage.removeItem('vd_t'); localStorage.removeItem('vd_u');
+    S.token = null; S.usuario = null;
+    const loginEl = document.getElementById('login-screen');
+    const appEl = document.getElementById('app-screen');
+    if (loginEl) loginEl.style.display = 'flex';
+    if (appEl) appEl.style.display = 'none';
+    window.history.replaceState(null, '', location.pathname);
+    throw new Error('Sesión expirada');
+  }
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.error||`HTTP ${r.status}`);
   return j;
