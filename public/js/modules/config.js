@@ -108,13 +108,7 @@ async function renderCfgTab(cfg){
             <input id="cfg-launcher-url" value="${esc(cfg.launcher_url?.valor||'http://localhost:3002')}" placeholder="http://localhost:3002" style="width:100%;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;">
           </div>
         </div>
-        <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;text-transform:none;letter-spacing:normal;font-weight:400;">
-            <input type="checkbox" id="cfg-plantilla-heredar" style="width:auto;flex-shrink:0" ${cfg.plantilla_heredar?.valor==='1'||cfg.plantilla_heredar?.valor==='true'?'checked':''}>
-            Heredar plantillas del Launcher
-          </label>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Al activarlo, las plantillas de correo se obtendrán del Launcher (recuperación de contraseña, etc.)</div>
-        </div>
+
           <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
             <div class="form-grid">
               <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Host SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
@@ -330,7 +324,6 @@ async function guardarCfg(tab){
     data.imap_tls=$('cfg-imap-tls')?.value||'true';
   }else if(tab==='smtp'){
     data.smtp_heredar=$('cfg-smtp-heredar')?.checked ? '1' : '0';
-    data.plantilla_heredar=$('cfg-plantilla-heredar')?.checked ? '1' : '0';
     data.launcher_url=$('cfg-launcher-url')?.value?.trim()||'http://localhost:3002';
     if (data.smtp_heredar !== '1') {
       data.smtp_host=$('cfg-smtp-host')?.value?.trim()||'';
