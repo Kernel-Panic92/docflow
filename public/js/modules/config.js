@@ -100,7 +100,7 @@ async function renderCfgTab(cfg){
         <h4 style="margin-bottom:16px;font-family:var(--font-head);">📧 Configuración SMTP</h4>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;text-transform:none;letter-spacing:normal;font-weight:400;">
-            <input type="checkbox" id="cfg-smtp-heredar" ${heredar?'checked':''} onchange="toggleHeredarSmtp()">
+            <input type="checkbox" id="cfg-smtp-heredar" style="width:auto;flex-shrink:0" ${heredar?'checked':''} onchange="toggleHeredarSmtp()">
             Heredar configuración del Launcher
           </label>
           <div id="cfg-launcher-url-wrap" style="margin-top:8px;${heredar?'':'display:none;'}">
@@ -110,7 +110,7 @@ async function renderCfgTab(cfg){
         </div>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;text-transform:none;letter-spacing:normal;font-weight:400;">
-            <input type="checkbox" id="cfg-plantilla-heredar" ${cfg.plantilla_heredar?.valor==='1'||cfg.plantilla_heredar?.valor==='true'?'checked':''}>
+            <input type="checkbox" id="cfg-plantilla-heredar" style="width:auto;flex-shrink:0" ${cfg.plantilla_heredar?.valor==='1'||cfg.plantilla_heredar?.valor==='true'?'checked':''}>
             Heredar plantillas del Launcher
           </label>
           <div style="font-size:12px;color:var(--muted);margin-top:6px;">Al activarlo, las plantillas de correo se obtendrán del Launcher (recuperación de contraseña, etc.)</div>
