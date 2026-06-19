@@ -117,12 +117,12 @@ async function renderCfgTab(cfg){
         </div>
           <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
             <div class="form-grid">
-              <div class="form-group"><label>Host SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
-              <div class="form-group"><label>Puerto</label><input id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"></div>
-              <div class="form-group"><label>TLS</label><select id="cfg-smtp-secure"><option value="true" ${cfg.smtp_secure?.valor!=='false'?'selected':''}>Sí</option><option value="false" ${cfg.smtp_secure?.valor==='false'?'selected':''}>No</option></select></div>
-              <div class="form-group"><label>Usuario</label><input id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}"></div>
-              <div class="form-group"><label>Contraseña</label><input type="password" id="cfg-smtp-pass" value="${cfg.smtp_password?.valor?'••••••••':''}"></div>
-              <div class="form-group"><label>Remitente (From)</label><input id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Host SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Puerto</label><input id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">TLS</label><select id="cfg-smtp-secure"><option value="true" ${cfg.smtp_secure?.valor!=='false'?'selected':''}>Sí</option><option value="false" ${cfg.smtp_secure?.valor==='false'?'selected':''}>No</option></select></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Usuario</label><input id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}"></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Contraseña</label><input type="password" id="cfg-smtp-pass" value="${cfg.smtp_password?.valor?'••••••••':''}"></div>
+              <div class="form-group"><label style="font-size:13px;text-transform:none;letter-spacing:normal;font-weight:400;">Remitente (From)</label><input id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
             </div>
           </div>
         <div class="flex" style="margin-top:8px;">
