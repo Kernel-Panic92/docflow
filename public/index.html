@@ -59,17 +59,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 .sidebar.collapsed~.main{margin-left:68px}
 .logo{padding:0 24px 16px;font-family:var(--font-head);font-size:18px;font-weight:800;letter-spacing:-.2px}
 .logo span{color:var(--accent)}
-.user-info{margin:0 16px 20px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.user-name{font-family:var(--font-head);font-size:13px;font-weight:700}
-.user-role{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;display:block;margin-top:2px}
-.role-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;margin-top:6px}
+.user-info{padding:16px 20px;border-bottom:1px solid var(--border);overflow:hidden}
+.user-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-role{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.role-badge{display:inline-block;background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
 .role-admin{background:rgba(247,97,79,.15);color:var(--danger)}
 .role-contador{background:rgba(79,142,247,.15);color:var(--accent)}
 .role-tesorero{background:rgba(247,212,79,.15);color:var(--warning)}
 .role-comprador{background:rgba(79,190,150,.15);color:var(--success)}
 .role-auditor{background:rgba(156,156,156,.15);color:var(--muted)}
 .nav-item{display:flex;align-items:center;gap:12px;padding:11px 24px;cursor:pointer;color:var(--muted);font-size:14px;font-weight:500;transition:all .2s;border-left:3px solid transparent;margin-bottom:2px}
-.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
 .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(79,142,247,.08)}
 .nav-item.hidden{display:none}
 .nav-icon{font-size:17px;width:22px;text-align:center}
