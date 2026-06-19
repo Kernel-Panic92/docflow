@@ -99,17 +99,17 @@ async function renderCfgTab(cfg){
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;max-width:600px;">
         <h4 style="margin-bottom:16px;font-family:var(--font-head);">📧 Configuración SMTP</h4>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;text-transform:none;letter-spacing:normal;font-weight:400;">
             <input type="checkbox" id="cfg-smtp-heredar" ${heredar?'checked':''} onchange="toggleHeredarSmtp()">
             Heredar configuración del Launcher
           </label>
           <div id="cfg-launcher-url-wrap" style="margin-top:8px;${heredar?'':'display:none;'}">
-            <label style="font-size:12px;color:var(--muted);">URL del Launcher</label>
+            <label style="font-size:12px;color:var(--muted);text-transform:none;letter-spacing:normal;font-weight:400;">URL del Launcher</label>
             <input id="cfg-launcher-url" value="${esc(cfg.launcher_url?.valor||'http://localhost:3002')}" placeholder="http://localhost:3002" style="width:100%;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;">
           </div>
         </div>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;text-transform:none;letter-spacing:normal;font-weight:400;">
             <input type="checkbox" id="cfg-plantilla-heredar" ${cfg.plantilla_heredar?.valor==='1'||cfg.plantilla_heredar?.valor==='true'?'checked':''}>
             Heredar plantillas del Launcher
           </label>
