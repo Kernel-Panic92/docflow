@@ -113,17 +113,18 @@ async function renderCfgTab(cfg){
             <input type="checkbox" id="cfg-plantilla-heredar" ${cfg.plantilla_heredar?.valor==='1'||cfg.plantilla_heredar?.valor==='true'?'checked':''}>
             Heredar plantillas del Launcher
           </label>
-          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Al activarlo, las plantillas de correo se obtendrán del Launcher en vez de usar las locales</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Al activarlo, las plantillas de correo se obtendrán del Launcher (recuperación de contraseña, etc.)</div>
         </div>
-        <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
-          <div class="form-grid">
-            <div class="field"><label>HOST SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
-            <div class="field"><label>PUERTO</label><input id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"></div>
-            <div class="field"><label>USUARIO</label><input id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
-            <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"></div>
-            <div class="field"><label>REMITENTE (FROM)</label><input id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
+          <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
+            <div class="form-grid">
+              <div class="form-group"><label>Host SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
+              <div class="form-group"><label>Puerto</label><input id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"></div>
+              <div class="form-group"><label>TLS</label><select id="cfg-smtp-secure"><option value="true" ${cfg.smtp_secure?.valor!=='false'?'selected':''}>Sí (recomendado)</option><option value="false" ${cfg.smtp_secure?.valor==='false'?'selected':''}>No</option></select></div>
+              <div class="form-group"><label>Usuario</label><input id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}"></div>
+              <div class="form-group"><label>Contraseña</label><input type="password" id="cfg-smtp-pass" value="${cfg.smtp_password?.valor?'••••••••':''}"></div>
+              <div class="form-group"><label>Remitente (From)</label><input id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
+            </div>
           </div>
-        </div>
         <div class="flex" style="margin-top:8px;">
           <button class="btn btn-primary" onclick="guardarCfg('smtp')">✓ Guardar</button>
           <button class="btn btn-secondary" onclick="testSmtp()">✉ Probar</button>
