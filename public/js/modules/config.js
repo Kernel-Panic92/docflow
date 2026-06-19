@@ -96,7 +96,7 @@ async function renderCfgTab(cfg){
   else if(cfgTabs==='smtp'){
     const heredar = cfg.smtp_heredar?.valor === '1' || cfg.smtp_heredar?.valor === 'true';
     c.innerHTML=`
-      <div class="card" style="max-width:600px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px;max-width:600px;">
         <h4 style="margin-bottom:16px;font-family:var(--font-head);">📧 Configuración SMTP</h4>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
