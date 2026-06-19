@@ -96,11 +96,8 @@ async function renderCfgTab(cfg){
   else if(cfgTabs==='smtp'){
     const heredar = cfg.smtp_heredar?.valor === '1' || cfg.smtp_heredar?.valor === 'true';
     c.innerHTML=`
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;max-width:600px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-          <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Servidor SMTP</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Configuración para enviar notificaciones por correo</div></div>
-          <span class="badge ${cfg.smtp_host?.valor?'b-aprobada':'b-revision'}">${cfg.smtp_host?.valor?'Configurado':'Sin configurar'}</span>
-        </div>
+      <div class="card" style="max-width:600px;">
+        <h4 style="margin-bottom:16px;font-family:var(--font-head);">📧 Configuración SMTP</h4>
         <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
             <input type="checkbox" id="cfg-smtp-heredar" ${heredar?'checked':''} onchange="toggleHeredarSmtp()">
@@ -113,30 +110,18 @@ async function renderCfgTab(cfg){
         </div>
         <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
           <div class="form-grid">
-            <div class="field"><label>HOST SMTP</label><input type="text" id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"/></div>
-            <div class="field"><label>PUERTO</label><input type="number" id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"/></div>
-            <div class="field"><label>USUARIO</label><input type="text" id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
-            <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"/></div>
-            <div class="field"><label>REMITENTE (FROM)</label><input type="text" id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
-            <div class="field">
-              <label>ENCRIPTACIÓN</label>
-              <select id="cfg-smtp-secure">
-                <option value="false" ${cfg.smtp_secure?.valor!=='true'?'selected':''}>STARTTLS (puerto 587)</option>
-                <option value="true" ${cfg.smtp_secure?.valor==='true'?'selected':''}>SSL (puerto 465)</option>
-              </select>
-            </div>
+            <div class="field"><label>HOST SMTP</label><input id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"></div>
+            <div class="field"><label>PUERTO</label><input id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"></div>
+            <div class="field"><label>USUARIO</label><input id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
+            <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"></div>
+            <div class="field"><label>REMITENTE (FROM)</label><input id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"></div>
           </div>
         </div>
-        <div style="display:flex;gap:10px;margin-top:20px">
-          <button class="btn btn-primary" onclick="guardarCfg('smtp')">💾 Guardar</button>
-          <button class="btn btn-secondary" onclick="testSmtp()">🧪 Probar conexión</button>
+        <div class="flex" style="margin-top:8px;">
+          <button class="btn btn-primary" onclick="guardarCfg('smtp')">✓ Guardar</button>
+          <button class="btn btn-secondary" onclick="testSmtp()">✉ Probar</button>
         </div>
-        <div id="cfg-test-smtp" style="margin-top:12px"></div>
-      </div>
-      
-      <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:12px;padding:16px">
-        <div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:8px">ℹ️ Nota sobre SMTP</div>
-        <div style="font-size:13px;color:var(--muted)">El servidor SMTP se usa para enviar notificaciones a los usuarios. Si activas "Heredar del Launcher", usará la config SMTP del orquestador central (puerto 3002).</div>
+        <div id="cfg-test-smtp" style="margin-top:10px;"></div>
       </div>
     `;
   }
