@@ -9,7 +9,7 @@ let cachedConfig = null;
 async function getConfig() {
   if (cachedConfig) return cachedConfig;
   try {
-    const { rows } = await db.query('SELECT clave, valor FROM configuracion WHERE clave LIKE \'smtp_%\' OR clave = \'empresa_nombre\' OR clave = \'smtp_heredar\' OR clave = \'launcher_url\'');
+    const { rows } = await db.query('SELECT clave, valor FROM configuracion WHERE clave LIKE \'smtp_%\' OR clave = \'empresa_nombre\' OR clave = \'smtp_heredar\' OR clave = \'launcher_url\' OR clave = \'plantilla_heredar\'');
     cachedConfig = {};
     for (const row of rows) {
       cachedConfig[row.clave] = row.valor;
@@ -117,6 +117,30 @@ async function enviarRecuperacion(usuario, token, reqHost) {
   const empresaNombre = cfg.empresa_nombre || 'DocFlow';
   const baseUrl = getBaseUrl(reqHost);
   const enlace  = `${baseUrl}/reset-password.html?token=${token}`;
+
+  // Try inherited template from Launcher
+  if (cfg.plantilla_heredar === '1' || cfg.plantilla_heredar === 'true') {
+    try {
+      const launcherUrl = (cfg.launcher_url || 'http://localhost:3002').replace(/\/+$/, '');
+      const res = await fetch(launcherUrl + '/api/plantillas/internal?modulo=docflow&tipo=' + encodeURIComponent('reset_password'), { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const plantilla = await res.json();
+        if (plantilla.asunto || plantilla.cuerpo_html) {
+          const asunto = plantilla.asunto || 'Recuperar contraseña — ' + empresaNombre;
+          let html = plantilla.cuerpo_html || '';
+          html = html.replace(/{nombre}/g, usuario.nombre).replace(/{enlace}/g, enlace).replace(/{empresa}/g, empresaNombre);
+          return enviar({
+            para: usuario.email,
+            asunto,
+            html,
+            text: html.replace(/<[^>]+>/g, '')
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[SMTP] Fallback a plantilla local (launcher no disponible):', e.message);
+    }
+  }
 
   const html = `
 <!DOCTYPE html>
