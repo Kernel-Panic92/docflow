@@ -27,9 +27,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-hei
 /* ── LOGIN ── */
 #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at top right,rgba(79,142,247,0.12),transparent 50%),radial-gradient(ellipse at bottom left,rgba(79,142,247,0.06),transparent 50%),var(--bg)}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:400px}
-.login-card h1{font-family:var(--font-head);font-size:24px;margin-bottom:4px}
-.login-card p{color:var(--muted);font-size:14px;margin-bottom:24px}
-.login-card .logo{font-size:40px;margin-bottom:12px}
+.login-card h1{font-family:var(--font-head);font-size:24px;margin-bottom:4px;text-align:center}
+.login-card p{color:var(--muted);font-size:14px;margin-bottom:24px;text-align:center}
+.login-card .logo{font-size:40px;margin-bottom:12px;text-align:center}
 .login-card label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
 .login-card .form-group{margin-bottom:16px}
 .login-card .error{color:var(--danger);font-size:13px;display:none;margin-bottom:12px}
@@ -261,7 +261,7 @@ input[type=password]{letter-spacing:2px}
 <!-- Login -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="logo">📄</div>
+    <div class="logo">📋</div>
     <h1>DocFlow Facturas</h1>
     <p>Gestión Documental de Facturas</p>
     <div class="error" id="login-error"></div>
