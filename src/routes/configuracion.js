@@ -177,7 +177,40 @@ router.get('/imap/test', requireRol('admin'), async (req, res) => {
 // ─── GET /api/configuracion/smtp/test ───────────────────────────────────────
 router.get('/smtp/test', requireRol('admin'), async (req, res) => {
   const nodemailer = require('nodemailer');
-  
+
+  // Inherit mode: fetch from launcher
+  if (req.query.inherit === '1') {
+    try {
+      const launcherUrl = (req.query.launcher_url || 'http://localhost:3002').replace(/\/+$/, '');
+      const launcherRes = await fetch(launcherUrl + '/api/smtp/internal', { signal: AbortSignal.timeout(5000) });
+      if (!launcherRes.ok) throw new Error('Launcher responded ' + launcherRes.status);
+      const data = await launcherRes.json();
+      const host = data.config.smtp_host || '';
+      const port = parseInt(data.config.smtp_port || '587');
+      const secure = data.config.smtp_secure === 'true';
+      const user = data.config.smtp_user || '';
+      const pass = data.config.smtp_pass || '';
+      const from = data.config.smtp_from || user;
+      if (!host || !user || !pass) {
+        return res.status(400).json({ error: 'SMTP del Launcher incompleto' });
+      }
+      const transporter = nodemailer.createTransport({
+        host, port, secure, requireTLS: !secure,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false },
+      });
+      await transporter.verify();
+      await transporter.sendMail({
+        from, to: req.usuario.email,
+        subject: 'Prueba SMTP - DocFlow (heredado)',
+        text: 'Configuración SMTP heredada del Launcher.\n\nSi recibes este correo, la herencia funciona correctamente.',
+      });
+      return res.json({ ok: true, mensaje: 'Configuración SMTP correcta (heredada)' });
+    } catch (err) {
+      return res.status(400).json({ ok: false, error: err.message });
+    }
+  }
+
   const host = req.query.host;
   const port = parseInt(req.query.port || '587');
   const secure = req.query.secure === 'true' || req.query.secure === true;

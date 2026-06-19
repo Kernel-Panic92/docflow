@@ -9,13 +9,31 @@ let cachedConfig = null;
 async function getConfig() {
   if (cachedConfig) return cachedConfig;
   try {
-    const { rows } = await db.query('SELECT clave, valor FROM configuracion WHERE clave LIKE \'smtp_%\' OR clave = \'empresa_nombre\'');
+    const { rows } = await db.query('SELECT clave, valor FROM configuracion WHERE clave LIKE \'smtp_%\' OR clave = \'empresa_nombre\' OR clave = \'smtp_heredar\' OR clave = \'launcher_url\'');
     cachedConfig = {};
     for (const row of rows) {
       cachedConfig[row.clave] = row.valor;
     }
     if (!cachedConfig.empresa_nombre) {
       cachedConfig.empresa_nombre = 'DocFlow';
+    }
+    // Inherit from launcher if enabled
+    if (cachedConfig.smtp_heredar === '1' || cachedConfig.smtp_heredar === 'true') {
+      try {
+        const launcherUrl = (cachedConfig.launcher_url || 'http://localhost:3002').replace(/\/+$/, '');
+        const res = await fetch(launcherUrl + '/api/smtp/internal', { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const data = await res.json();
+          cachedConfig.smtp_host = data.config.smtp_host || cachedConfig.smtp_host;
+          cachedConfig.smtp_port = data.config.smtp_port || cachedConfig.smtp_port;
+          cachedConfig.smtp_secure = data.config.smtp_secure || cachedConfig.smtp_secure;
+          cachedConfig.smtp_user = data.config.smtp_user || cachedConfig.smtp_user;
+          cachedConfig.smtp_password = data.config.smtp_pass || cachedConfig.smtp_password;
+          cachedConfig.smtp_from = data.config.smtp_from || cachedConfig.smtp_from;
+        }
+      } catch (e) {
+        console.warn('[SMTP] Fallback a config local (launcher no disponible):', e.message);
+      }
     }
     return cachedConfig;
   } catch (e) {

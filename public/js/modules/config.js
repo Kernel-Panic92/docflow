@@ -94,24 +94,37 @@ async function renderCfgTab(cfg){
     `;
   }
   else if(cfgTabs==='smtp'){
+    const heredar = cfg.smtp_heredar?.valor === '1' || cfg.smtp_heredar?.valor === 'true';
     c.innerHTML=`
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Servidor SMTP</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Configuración para enviar notificaciones por correo</div></div>
           <span class="badge ${cfg.smtp_host?.valor?'b-aprobada':'b-revision'}">${cfg.smtp_host?.valor?'Configurado':'Sin configurar'}</span>
         </div>
-        <div class="form-grid">
-          <div class="field"><label>HOST SMTP</label><input type="text" id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"/></div>
-          <div class="field"><label>PUERTO</label><input type="number" id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"/></div>
-          <div class="field"><label>USUARIO</label><input type="text" id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
-          <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"/></div>
-          <div class="field"><label>REMITENTE (FROM)</label><input type="text" id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
-          <div class="field">
-            <label>ENCRIPTACIÓN</label>
-            <select id="cfg-smtp-secure">
-              <option value="false" ${cfg.smtp_secure?.valor!=='true'?'selected':''}>STARTTLS (puerto 587)</option>
-              <option value="true" ${cfg.smtp_secure?.valor==='true'?'selected':''}>SSL (puerto 465)</option>
-            </select>
+        <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+            <input type="checkbox" id="cfg-smtp-heredar" ${heredar?'checked':''} onchange="toggleHeredarSmtp()">
+            Heredar configuración del Launcher
+          </label>
+          <div id="cfg-launcher-url-wrap" style="margin-top:8px;${heredar?'':'display:none;'}">
+            <label style="font-size:12px;color:var(--muted);">URL del Launcher</label>
+            <input id="cfg-launcher-url" value="${esc(cfg.launcher_url?.valor||'http://localhost:3002')}" style="width:100%;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;">
+          </div>
+        </div>
+        <div id="cfg-smtp-local" style="${heredar?'opacity:0.5;pointer-events:none;':''}">
+          <div class="form-grid">
+            <div class="field"><label>HOST SMTP</label><input type="text" id="cfg-smtp-host" value="${esc(cfg.smtp_host?.valor||'')}" placeholder="smtp.dominio.com"/></div>
+            <div class="field"><label>PUERTO</label><input type="number" id="cfg-smtp-port" value="${esc(cfg.smtp_port?.valor||'587')}" placeholder="587"/></div>
+            <div class="field"><label>USUARIO</label><input type="text" id="cfg-smtp-user" value="${esc(cfg.smtp_user?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
+            <div class="field"><label>CONTRASEÑA</label><input type="password" id="cfg-smtp-pass" value="${esc(cfg.smtp_password?.valor||'')}" placeholder="••••••••"/></div>
+            <div class="field"><label>REMITENTE (FROM)</label><input type="text" id="cfg-smtp-from" value="${esc(cfg.smtp_from?.valor||'')}" placeholder="notificaciones@dominio.com"/></div>
+            <div class="field">
+              <label>ENCRIPTACIÓN</label>
+              <select id="cfg-smtp-secure">
+                <option value="false" ${cfg.smtp_secure?.valor!=='true'?'selected':''}>STARTTLS (puerto 587)</option>
+                <option value="true" ${cfg.smtp_secure?.valor==='true'?'selected':''}>SSL (puerto 465)</option>
+              </select>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px">
@@ -123,7 +136,7 @@ async function renderCfgTab(cfg){
       
       <div style="background:rgba(79,142,247,.08);border:1px solid rgba(79,142,247,.2);border-radius:12px;padding:16px">
         <div style="font-size:13px;color:var(--accent);font-weight:600;margin-bottom:8px">ℹ️ Nota sobre SMTP</div>
-        <div style="font-size:13px;color:var(--muted)">El servidor SMTP se usa para enviar notificaciones a los usuarios cuando hay facturas que requieren atención. Configure un servidor SMTP válido para activar las notificaciones.</div>
+        <div style="font-size:13px;color:var(--muted)">El servidor SMTP se usa para enviar notificaciones a los usuarios. Si activas "Heredar del Launcher", usará la config SMTP del orquestador central (puerto 3002).</div>
       </div>
     `;
   }
@@ -323,12 +336,16 @@ async function guardarCfg(tab){
     data.imap_folder=$('cfg-imap-folder')?.value?.trim()||'INBOX';
     data.imap_tls=$('cfg-imap-tls')?.value||'true';
   }else if(tab==='smtp'){
-    data.smtp_host=$('cfg-smtp-host')?.value?.trim()||'';
-    data.smtp_port=$('cfg-smtp-port')?.value?.trim()||'587';
-    data.smtp_user=$('cfg-smtp-user')?.value?.trim()||'';
-    data.smtp_password=$('cfg-smtp-pass')?.value||'';
-    data.smtp_from=$('cfg-smtp-from')?.value?.trim()||'';
-    data.smtp_secure=$('cfg-smtp-secure')?.value||'false';
+    data.smtp_heredar=$('cfg-smtp-heredar')?.checked ? '1' : '0';
+    data.launcher_url=$('cfg-launcher-url')?.value?.trim()||'http://localhost:3002';
+    if (data.smtp_heredar !== '1') {
+      data.smtp_host=$('cfg-smtp-host')?.value?.trim()||'';
+      data.smtp_port=$('cfg-smtp-port')?.value?.trim()||'587';
+      data.smtp_user=$('cfg-smtp-user')?.value?.trim()||'';
+      data.smtp_password=$('cfg-smtp-pass')?.value||'';
+      data.smtp_from=$('cfg-smtp-from')?.value?.trim()||'';
+      data.smtp_secure=$('cfg-smtp-secure')?.value||'false';
+    }
   }else if(tab==='horas'){
     data.horas_limite_revision=$('cfg-horas-revision')?.value?.trim()||'24';
     data.horas_escalacion_nivel2=$('cfg-horas-nivel2')?.value?.trim()||'48';
@@ -485,13 +502,25 @@ async function testImap(){
 }
 
 async function testSmtp(){
+  const heredar=$('cfg-smtp-heredar')?.checked;
+  const el=$('cfg-test-smtp');
+  if (heredar) {
+    const launcherUrl=$('cfg-launcher-url')?.value?.trim()||'http://localhost:3002';
+    el.innerHTML='<span style="color:var(--muted)">Probando conexión con Launcher...</span>';
+    try{
+      const r=await api('GET',`/configuracion/smtp/test?inherit=1&launcher_url=${encodeURIComponent(launcherUrl)}`);
+      el.innerHTML='<span style="color:var(--success)">✓ Configuración SMTP correcta (heredada del Launcher)</span>';
+    }catch(e){
+      el.innerHTML=`<span style="color:var(--danger)">✗ Error: ${esc(e.message)}</span>`;
+    }
+    return;
+  }
   const host=$('cfg-smtp-host')?.value?.trim();
   const port=$('cfg-smtp-port')?.value?.trim();
   const user=$('cfg-smtp-user')?.value?.trim();
   const pass=$('cfg-smtp-pass')?.value;
   const from=$('cfg-smtp-from')?.value?.trim();
   const secure=$('cfg-smtp-secure')?.value;
-  const el=$('cfg-test-smtp');
   if(!host||!user||!pass){el.innerHTML='<span style="color:var(--danger)">Completa host, usuario y contraseña</span>';return}
   el.innerHTML='<span style="color:var(--muted)">Probando conexión...</span>';
   try{
@@ -500,6 +529,14 @@ async function testSmtp(){
   }catch(e){
     el.innerHTML=`<span style="color:var(--danger)">✗ Error: ${esc(e.message)}</span>`;
   }
+}
+
+function toggleHeredarSmtp() {
+  const checked = $('cfg-smtp-heredar').checked;
+  const wrap = $('cfg-launcher-url-wrap');
+  if (wrap) wrap.style.display = checked ? '' : 'none';
+  const local = $('cfg-smtp-local');
+  if (local) { local.style.opacity = checked ? '0.5' : ''; local.style.pointerEvents = checked ? 'none' : ''; }
 }
 
 // ─── ACTUALIZACIÓN ─────────────────────────────────────────────────────────
