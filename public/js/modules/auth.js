@@ -4,7 +4,7 @@ async function doLogin(){
   const email=$('login-email').value.trim();
   const pass=$('login-pass').value;
   const errEl=$('login-error');
-  errEl.classList.remove('show');
+  errEl.style.display='none';
   setLoading('btn-login',true);
   try{
     const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
@@ -13,7 +13,7 @@ async function doLogin(){
     S.token=d.token;S.usuario=d.usuario;
     localStorage.setItem('vd_t',d.token);localStorage.setItem('vd_u',JSON.stringify(d.usuario));
     if(d.cambio_password)showChPass();else showApp();
-  }catch(ex){errEl.textContent=ex.message;errEl.classList.add('show')}
+  }catch(ex){errEl.textContent=ex.message;errEl.style.display='block'}
   setLoading('btn-login',false);
 }
 function doLogout(){localStorage.removeItem('vd_t');localStorage.removeItem('vd_u');S.token=null;S.usuario=null;$('app-screen').classList.remove('show');$('login-screen').style.display='flex'}
@@ -21,16 +21,28 @@ function showLogoutConfirm(){$('logout-modal').classList.add('open')}
 function closeLogoutConfirm(){$('logout-modal').classList.remove('open')}
 function confirmLogout(){closeLogoutConfirm();doLogout()}
 
-function showForgot(e){e.preventDefault();$('forgot-modal').classList.add('open')}
-function closeForgot(){$('forgot-modal').classList.remove('open');$('forgot-email').value='';$('forgot-msg').innerHTML=''}
-async function doForgot(){
+function showForgot(e){e.preventDefault();$('modal-forgot').classList.add('open')}
+function closeForgot(){$('modal-forgot').classList.remove('open');$('forgot-email').value='';$('forgot-error').style.display='none';$('forgot-success').style.display='none';$('forgot-form').style.display='block'}
+function doForgot(){
   const email=$('forgot-email').value.trim();
   if(!email)return;
-  try{
-    await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-    $('forgot-msg').innerHTML=`<span style="color:var(--success)">✓ Se envió un enlace a tu correo.</span>`;
-    setTimeout(closeForgot,3000);
-  }catch(e){$('forgot-msg').innerHTML=`<span style="color:var(--danger)">${e.message}</span>`}
+  setLoading('btn-forgot',true);
+  fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.ok||d.error===undefined){
+        $('forgot-form').style.display='none';
+        $('forgot-success').textContent='✓ Enlace enviado a tu correo.';
+        $('forgot-success').style.display='block';
+        setTimeout(closeForgot,3000);
+      }else{
+        $('forgot-error').textContent=d.error;
+        $('forgot-error').style.display='block';
+      }
+    }).catch(e=>{
+      $('forgot-error').textContent='Error de conexión';
+      $('forgot-error').style.display='block';
+    }).finally(()=>setLoading('btn-forgot',false));
 }
 
 function showChPass(){$('chpass-modal').classList.add('open')}
