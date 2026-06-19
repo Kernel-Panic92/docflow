@@ -96,7 +96,7 @@ async function renderCfgTab(cfg){
   else if(cfgTabs==='smtp'){
     const heredar = cfg.smtp_heredar?.valor === '1' || cfg.smtp_heredar?.valor === 'true';
     c.innerHTML=`
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px;max-width:600px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
           <div><div style="font-family:var(--font-head);font-size:16px;font-weight:700">Servidor SMTP</div><div style="font-size:13px;color:var(--muted);margin-top:4px">Configuración para enviar notificaciones por correo</div></div>
           <span class="badge ${cfg.smtp_host?.valor?'b-aprobada':'b-revision'}">${cfg.smtp_host?.valor?'Configurado':'Sin configurar'}</span>
